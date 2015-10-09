@@ -23,8 +23,8 @@ public class BridgeNum {
 		deq = new ArrayDeque<>();
 		graph = new ArrayList<>();
 		bridges = 0;
-        for (int i = 0; i < vertexes; i++)
-            graph.add(new Node());
+		for (int i = 0; i < vertexes; i++)
+            		graph.add(new Node());
 		for (int i = 0; i < edges; i++) {
 			int foo = in.nextInt(), bar = in.nextInt();
 			graph.get(foo).vrtxs.add(bar);
