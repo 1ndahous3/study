@@ -11,6 +11,7 @@ protected:
 	enum Actions { add, del	};
 
 	typedef struct {
+		time_t time;
 		Actions type;
 		unsigned int pos, len;
 		Container obj;

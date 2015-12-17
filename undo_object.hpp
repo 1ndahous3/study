@@ -15,7 +15,6 @@ protected:
 
 	std::vector<event> *undo_list, *redo_list;
 	size_t buff_count;
-	time_t buff_time;
 
 public:
 
