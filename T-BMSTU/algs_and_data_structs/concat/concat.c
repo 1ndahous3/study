@@ -19,7 +19,7 @@ char *concat(char **s, int n) {
 }
 
 int main() {
-	int i, b, y, num;
+	int i, y, num;
 	char **mass, *d;
 	scanf("%d ", &num);
 	mass = (char**) malloc(num * sizeof(char*));
