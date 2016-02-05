@@ -2,14 +2,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-enum tags {	IDENT, NUMBER, LPAREN, RPAREN, END, ADD, SUB, MUL, DIV };
+enum tags { IDENT, NUMBER, LPAREN, RPAREN, END, ADD, SUB, MUL, DIV };
 
 @SuppressWarnings("serial")
 class ParseErrorException extends Exception {
 	int pos = 0;
 	
 	public ParseErrorException() {};
-	public ParseErrorException(int a) {	pos = a; }
+	public ParseErrorException(int a) { pos = a; }
 	
 }
 
