@@ -40,13 +40,13 @@ public class Mars {
 		}
 	}
 
-	private boolean pushPerson(TreeSet<Integer> group_foo, TreeSet<Integer> group_bar, int i, int j) {
-		if (group_foo.contains(j)) {
+	private boolean pushPerson(TreeSet<Integer> group_foo, TreeSet<Integer> group_bar, int i) {
+		if (group_foo.contains(i)) {
 			return false;
-		} else if (!checked[j]) {
-			addToGroup(group_bar, j);
-			if (!queue.contains(j))
-				queue.add(j);
+		} else if (!checked[i]) {
+			addToGroup(group_bar, i);
+			if (!queue.contains(i))
+				queue.add(i);
 		}
 
 		return true;
@@ -54,9 +54,9 @@ public class Mars {
 
 	private boolean splitTeams(int i, int j) {
 		if (group_one.contains(i)) {
-			return pushPerson(group_one, group_two, i, j);
+			return pushPerson(group_one, group_two, j);
 		} else if (group_two.contains(i)) {
-			return pushPerson(group_two, group_one, i, j);
+			return pushPerson(group_two, group_one, j);
 		} else {
 			addToGroup(group_one, i);
 			addToGroup(group_two, j);
@@ -101,12 +101,10 @@ public class Mars {
 				if (compareCombs(group_min, group_a)) {
 					group_min = group_a;
 					group_max = group_b;
-					k = i;
 				}
 				if (compareCombs(group_min, group_b)) {
 					group_min = group_b;
 					group_max = group_a;
-					k = i;
 				}
 			}
 		}
@@ -202,7 +200,7 @@ public class Mars {
 
 		for (int i = 0; i < nel; i++) {
 			for (int j = 0; j < nel; j++) {
-				mtrx[i][j] = (in.next().equals("-") ? false : true);
+				mtrx[i][j] = !in.next().equals("-");
 			}
 		}
 
