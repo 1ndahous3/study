@@ -2,13 +2,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-enum tags { IDENT, NUMBER, LPAREN, RPAREN, END, ADD, SUB, MUL, DIV };
+enum tags { IDENT, NUMBER, LPAREN, RPAREN, END, ADD, SUB, MUL, DIV }
 
 @SuppressWarnings("serial")
 class ParseErrorException extends Exception {
 	int pos = 0;
 	
-	public ParseErrorException() {};
+	public ParseErrorException() {}
 	public ParseErrorException(int a) { pos = a; }
 	
 }
@@ -40,6 +40,12 @@ public class Calc {
 	private tags tag;
 	private HashMap<String, Integer> idents;
 
+	Calc(Scanner in) {
+		this.in = in;
+		this.str = in.nextLine();
+		this.idents = new HashMap<>();
+	}
+
 	private int parse() throws ParseErrorException {
 		ArrayList<Node> foo = new ArrayList<>();
 		this.next_token(foo);
@@ -58,8 +64,7 @@ public class Calc {
 
 	private void next_token(ArrayList<Node> bar) throws ParseErrorException {
 		int c;
-		while (Character.isSpaceChar(c = next_char()))
-			;
+		while (Character.isSpaceChar(c = next_char()));
 		if (Character.isAlphabetic(c)) {
 			int foo = this.curr;
 			do {
@@ -74,8 +79,7 @@ public class Calc {
 			bar.add(new Node(tags.NUMBER, idents.get(substr)));
 		} else if (Character.isDigit(c) && c != -1) {
 			int foo = this.curr;
-			while (Character.isDigit(c = next_char()))
-				;
+			while (Character.isDigit(c = next_char()));
 			this.tag = tags.NUMBER;
 			if (c != -1)
 				this.next--;
@@ -126,7 +130,6 @@ public class Calc {
 					foo.get(i).tag = tags.ADD;
 				else
 					foo.remove(i);
-				continue;
 			}
 		for (int i = 0; i < foo.size(); i++)
 			switch (foo.get(i).tag) {
@@ -190,11 +193,5 @@ public class Calc {
 			System.out.print("error");
 			// System.out.println(" in position: " + err.pos);
 		}
-	}
-
-	Calc(Scanner in) {
-		this.in = in;
-		this.str = in.nextLine();
-		this.idents = new HashMap<>();
 	}
 }

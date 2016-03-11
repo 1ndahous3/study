@@ -4,7 +4,7 @@ import java.util.Scanner;
 public class Econom {
 	private static int shrink_expr(String line) {
 		int index_curr, index_end = 0;
-		HashSet<String> hset = new HashSet<String>();
+		HashSet<String> hset = new HashSet<>();
 
 		while ((index_curr = line.indexOf(')', index_end)) != -1) {
 			int index_start = index_curr - 1;
