@@ -4,26 +4,29 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 
 public class Sync {
-	static ArrayList<String> DelList, CopyList;
+	private static ArrayList<String> DelList, CopyList;
 
 	public static void main(String[] args) throws IOException {
 		File S = new File(args[0]);
 		File D = new File(args[1]);
 		DelList = new ArrayList<>();
 		CopyList = new ArrayList<>();
+
 		CompareFolder(S, D);
+
 		if (CopyList.isEmpty() && DelList.isEmpty())
 			System.out.println("IDENTICAL");
 		else {
-			Collections.sort(DelList);
-			Collections.sort(CopyList);
-			for (String i : DelList)
-				System.out.println("DELETE " + i.substring(args[1].length() + 1));
-			for (String i : CopyList)
-				System.out.println("COPY " + i.substring(args[0].length() + 1));
+			DelList
+					.stream()
+					.sorted()
+					.forEach(i -> System.out.println("DELETE " + i.substring(args[1].length() + 1)));
+			CopyList
+					.stream()
+					.sorted()
+					.forEach(i -> System.out.println("COPY " + i.substring(args[0].length() + 1)));
 		}
 	}
 
