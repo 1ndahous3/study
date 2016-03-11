@@ -13,12 +13,11 @@ public class FastFib {
 		BigInteger[][] E = {
 				{ BigInteger.ONE, BigInteger.ONE },
 				{ BigInteger.ONE, BigInteger.ZERO } };
-		
-		if (n == 1)
-			return E;
-		return n % 2 == 1 ?
-				multiplication(E, exponentiation(n - 1)) :
-				multiplication(exponentiation(n / 2), exponentiation(n / 2));
+
+		return n == 1 ? E
+				: n % 2 == 1 ?
+				multiplication(E, exponentiation(n - 1))
+				: multiplication(exponentiation(n / 2), exponentiation(n / 2));
 	}
 
 	private static BigInteger GetFib(int n) {
