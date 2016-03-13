@@ -2,10 +2,10 @@ import java.util.*;
 import java.util.AbstractMap.SimpleEntry;
 
 public class MaxComponent {
-	private final TreeMap<Integer, TreeSet<Integer>> bridges = new TreeMap<>();
+	private final TreeMap<Integer, PriorityQueue<Integer>> bridges = new TreeMap<>();
 	private ArrayList<SimpleEntry<Integer, TreeSet<Integer>>> comps;
 
-	public MaxComponent(TreeMap<Integer, TreeSet<Integer>> _bridges) {
+	public MaxComponent(TreeMap<Integer, PriorityQueue<Integer>> _bridges) {
 		bridges.putAll(_bridges);
 		splitComponents();
 	}
@@ -19,11 +19,11 @@ public class MaxComponent {
 						a.getValue().size() != b.getValue().size() ?
 								b.getValue().size() - a.getValue().size() : a.getKey() != b.getKey() ?
 								b.getKey() - a.getKey() : (Integer)(a.getValue().toArray()[0]) -  (Integer)(b.getValue().toArray()[0]))
-			.toArray()[0];
+				.toArray()[0];
 
 		StringBuilder res = new StringBuilder("graph {\n");
 
-		for (Map.Entry<Integer, TreeSet<Integer>> obj : bridges.entrySet()) {
+		for (Map.Entry<Integer, PriorityQueue<Integer>> obj : bridges.entrySet()) {
 			int num = obj.getKey();
 			res.append("\t").append(num);
 			if (red.getValue().contains(num)) {
@@ -32,7 +32,7 @@ public class MaxComponent {
 			res.append("\n");
 		}
 
-		for (Map.Entry<Integer, TreeSet<Integer>> obj : bridges.entrySet()) {
+		for (Map.Entry<Integer, PriorityQueue<Integer>> obj : bridges.entrySet()) {
 			int num1 = obj.getKey();
 			obj.getValue()
 					.stream()
@@ -94,16 +94,18 @@ public class MaxComponent {
 	public static void main(String[] args) {
 		Scanner in = new Scanner(System.in);
 		int n_of_vrtxs = in.nextInt(), n_of_bridges = in.nextInt();
-		TreeMap<Integer, TreeSet<Integer>> bridges = new TreeMap<>();
+		TreeMap<Integer, PriorityQueue<Integer>> bridges = new TreeMap<>();
 
 		for (int i = 0; i < n_of_vrtxs; i++) {
-			bridges.put(i, new TreeSet<>());
+			bridges.put(i, new PriorityQueue<>());
 		}
 
 		for (int i = 0; i < n_of_bridges; i++) {
 			int foo = in.nextInt(), bar = in.nextInt();
 			bridges.get(foo).add(bar);
-			bridges.get(bar).add(foo);
+			if (foo != bar) {
+				bridges.get(bar).add(foo);
+			}
 		}
 
 		MaxComponent comp = new MaxComponent(bridges);
