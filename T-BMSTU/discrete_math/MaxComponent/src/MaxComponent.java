@@ -2,11 +2,11 @@ import java.util.*;
 import java.util.AbstractMap.SimpleEntry;
 
 public class MaxComponent {
-	private final TreeMap<Integer, PriorityQueue<Integer>> bridges = new TreeMap<>();
+	private final TreeMap<Integer, ArrayList<Integer>> edges = new TreeMap<>();
 	private ArrayList<SimpleEntry<Integer, TreeSet<Integer>>> comps;
 
-	public MaxComponent(TreeMap<Integer, PriorityQueue<Integer>> _bridges) {
-		bridges.putAll(_bridges);
+	public MaxComponent(TreeMap<Integer, ArrayList<Integer>> _edges) {
+		edges.putAll(_edges);
 		splitComponents();
 	}
 
@@ -18,12 +18,12 @@ public class MaxComponent {
 				.sorted((SimpleEntry<Integer, TreeSet<Integer>> a, SimpleEntry<Integer, TreeSet<Integer>> b) ->
 						a.getValue().size() != b.getValue().size() ?
 								b.getValue().size() - a.getValue().size() : a.getKey() != b.getKey() ?
-								b.getKey() - a.getKey() : (Integer)(a.getValue().toArray()[0]) -  (Integer)(b.getValue().toArray()[0]))
+								b.getKey() - a.getKey() : a.getValue().first() - b.getValue().first())
 				.toArray()[0];
 
 		StringBuilder res = new StringBuilder("graph {\n");
 
-		for (Map.Entry<Integer, PriorityQueue<Integer>> obj : bridges.entrySet()) {
+		for (Map.Entry<Integer, ArrayList<Integer>> obj : edges.entrySet()) {
 			int num = obj.getKey();
 			res.append("\t").append(num);
 			if (red.getValue().contains(num)) {
@@ -32,7 +32,7 @@ public class MaxComponent {
 			res.append("\n");
 		}
 
-		for (Map.Entry<Integer, PriorityQueue<Integer>> obj : bridges.entrySet()) {
+		for (Map.Entry<Integer, ArrayList<Integer>> obj : edges.entrySet()) {
 			int num1 = obj.getKey();
 			obj.getValue()
 					.stream()
@@ -52,36 +52,32 @@ public class MaxComponent {
 
 	private void splitComponents() {
 		comps = new ArrayList<>();
-		PriorityQueue<Integer> queue = new PriorityQueue<>();
-		int br_counter = 0;
-		TreeSet<Integer> set = new TreeSet<>();
-		set.add(0);
+		ArrayDeque<Integer> queue = new ArrayDeque<>();
+		TreeSet<Integer> set;
+		int br_counter;
+		boolean[] visited = new boolean[edges.size()];
 
-		boolean[] visited = new boolean[bridges.size()];
-		for (int i = 0; i < bridges.size(); i++) {
-			visited[i] = false;
-		}
-
-		for (int i = 0; i < bridges.size();) {
-			if (!queue.isEmpty()) {
+		for (int i = 0; i < edges.size(); i++) {
+			if (visited[i]) {
+				continue;
+			}
+			set = new TreeSet<>();
+			set.add(i);
+			br_counter = checkVrtx(queue, visited, i);
+			while (!queue.isEmpty()) {
 				int foo = queue.poll();
 				set.add(foo);
 				br_counter += checkVrtx(queue, visited, foo);
 				visited[foo] = true;
-				continue;
 			}
 			comps.add(new SimpleEntry<>(br_counter, set));
-
-			set = new TreeSet<>();
-			set.add(i);
-			br_counter = checkVrtx(queue, visited, i);
-			visited[i++] = true;
+			visited[i] = true;
 		}
 	}
 
-	private int checkVrtx(PriorityQueue<Integer> queue, boolean[] visited, int j) {
+	private int checkVrtx(ArrayDeque<Integer> queue, boolean[] visited, int j) {
 		int bridges_count = 0;
-		for (int i: bridges.get(j)) {
+		for (int i: edges.get(j)) {
 			if (!visited[i]) {
 				queue.add(i);
 				bridges_count++;
@@ -94,21 +90,22 @@ public class MaxComponent {
 	public static void main(String[] args) {
 		Scanner in = new Scanner(System.in);
 		int n_of_vrtxs = in.nextInt(), n_of_bridges = in.nextInt();
-		TreeMap<Integer, PriorityQueue<Integer>> bridges = new TreeMap<>();
+		TreeMap<Integer, ArrayList<Integer>> edges = new TreeMap<>();
 
 		for (int i = 0; i < n_of_vrtxs; i++) {
-			bridges.put(i, new PriorityQueue<>());
+			edges.put(i, new ArrayList<>());
 		}
 
 		for (int i = 0; i < n_of_bridges; i++) {
 			int foo = in.nextInt(), bar = in.nextInt();
-			bridges.get(foo).add(bar);
+			edges.get(foo).add(bar);
 			if (foo != bar) {
-				bridges.get(bar).add(foo);
+				edges.get(bar).add(foo);
 			}
 		}
 
-		MaxComponent comp = new MaxComponent(bridges);
+		MaxComponent comp = new MaxComponent(edges);
+
 		System.out.println(comp);
 	}
 }
