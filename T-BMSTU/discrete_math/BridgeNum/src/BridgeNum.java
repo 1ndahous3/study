@@ -73,7 +73,7 @@ public class BridgeNum {
 	}
 
 	public static void main(String[] args) {
-		BridgeNum res = new BridgeNum(new Scanner(System.in));
-		System.out.println(res);
+		BridgeNum br = new BridgeNum(new Scanner(System.in));
+		System.out.println(br);
 	}
 }
