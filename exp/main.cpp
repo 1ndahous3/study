@@ -1,9 +1,9 @@
 #include <iostream>
 #include <sys/time.h>
 
-#define NUM 10000
-#define EXP 100000000
-#define NUM_OF_CYCLES 10
+#define NUM 10
+#define EXP 9
+#define NUM_OF_CYCLES 1000000
 
 using namespace std;
 
@@ -67,7 +67,7 @@ int main() {
 	////////
 
 	cout << endl;
-	cout << "Difference = " << res1 - res2 << " sec." << endl;
+	cout << "Difference = " << (res1 - res2) / NUM_OF_CYCLES << " sec." << endl;
 	cout << "Сoefficient = " << res1 / res2 << endl;
 
 	return 0;
