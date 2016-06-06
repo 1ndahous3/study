@@ -2,7 +2,7 @@ import java.util.AbstractSet;
 import java.util.Iterator;
 
 public class IntSparseSet extends AbstractSet<Integer> {
-	int sparse[], dense[], num = 0, shift;
+	private int sparse[], dense[], num = 0, shift;
 
 	public IntSparseSet(int low, int high) {
 		shift = low;
@@ -15,8 +15,7 @@ public class IntSparseSet extends AbstractSet<Integer> {
 		if (!(a - shift < sparse.length && a - shift >= 0) || contains(a))
 			return false;
 		dense[num] = a;
-		sparse[dense[num] - shift] = num;
-		num++;
+		sparse[dense[num] - shift] = num++;
 		return true;
 	}
 
@@ -26,8 +25,9 @@ public class IntSparseSet extends AbstractSet<Integer> {
 	}
 
 	public boolean remove(Integer a) {
-		if (!(a - shift < sparse.length && a - shift >= 0) || !contains(a))
+		if (!(a - shift < sparse.length && a - shift >= 0) || !contains(a)) {
 			return false;
+		}
 		num--;
 		dense[sparse[a - shift]] = dense[num];
 		sparse[dense[num] - shift] = sparse[a - shift];
@@ -43,22 +43,23 @@ public class IntSparseSet extends AbstractSet<Integer> {
 	}
 
 	public Iterator<Integer> iterator() {
-		Iterator<Integer> res = new Iterator<Integer>() {
+		return new Iterator<Integer>() {
 			private int i = -1;
 
+			@Override
 			public boolean hasNext() {
 				return i < num - 1;
 			}
 
+			@Override
 			public Integer next() {
-				i++;
-				return dense[i];
+				return dense[++i];
 			}
 
+			@Override
 			public void remove() {
 				IntSparseSet.this.remove(dense[i]);
 			}
 		};
-		return res;
 	}
 }

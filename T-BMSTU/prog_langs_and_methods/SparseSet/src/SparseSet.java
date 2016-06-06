@@ -3,7 +3,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 public class SparseSet<T extends Hintable> extends AbstractSet<T> {
-	ArrayList<T> dense;
+	private ArrayList<T> dense;
 	int num = 0;
 
 	public SparseSet() {
@@ -12,8 +12,9 @@ public class SparseSet<T extends Hintable> extends AbstractSet<T> {
 
 	@Override
 	public boolean add(T a) {
-		if (contains(a))
+		if (contains(a)) {
 			return false;
+		}
 		a.setHint(num++);
 		dense.add(a);
 		return true;
@@ -24,8 +25,9 @@ public class SparseSet<T extends Hintable> extends AbstractSet<T> {
 	}
 
 	public boolean remove(T a) {
-		if (!contains(a))
+		if (!contains(a)) {
 			return false;
+		}
 		dense.get(--num).setHint(a.hint());
 		dense.set(a.hint(), dense.get(num));
 		dense.remove(num);
@@ -41,21 +43,23 @@ public class SparseSet<T extends Hintable> extends AbstractSet<T> {
 	}
 
 	public Iterator<T> iterator() {
-		Iterator<T> res = new Iterator<T>() {
+		return new Iterator<T>() {
 			private int i = -1;
 
+			@Override
 			public boolean hasNext() {
 				return i < num - 1;
 			}
 
+			@Override
 			public T next() {
 				return dense.get(++i);
 			}
 
+			@Override
 			public void remove() {
 				SparseSet.this.remove(dense.get(i));
 			}
 		};
-		return res;
 	}
 }
