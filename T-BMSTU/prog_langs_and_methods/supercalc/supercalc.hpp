@@ -12,11 +12,11 @@ private:
 	function<T()> func;
 
 public:
-	Node() : func([&value = value]() { return value.value(); }) {};
+	Node() : func([&value = value]() { return value.value(); }) {}
 
-	Node(T _value) : value(_value), func([&value = value]() { return value.value() ; }) {};
+	Node(T _value) : value(_value), func([&value = value]() { return value.value(); }) {}
 
-	Node(function<T()> &&_func) : func(_func) {};
+	Node(function<T()> &&_func) : func(_func) {}
 
 	Node(const Node<T> &rhs) : func(rhs.func) {}
 
