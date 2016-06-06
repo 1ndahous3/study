@@ -12,13 +12,13 @@ private:
 	function<T()> func;
 
 public:
-	Node() : func([=]() { return value.value(); }) {};
+	Node() : func([&value = value]() { return value.value(); }) {};
 
-	Node(T _value) : value(_value), func([value = value]() { return value.value() ; }) {};
+	Node(T _value) : value(_value), func([&value = value]() { return value.value() ; }) {};
 
 	Node(function<T()> &&_func) : func(_func) {};
 
-	Node(const Node<T> &rhs) : func(rhs.func){}
+	Node(const Node<T> &rhs) : func(rhs.func) {}
 
 	Node<T> &operator=(const Node<T> &rhs) {
 		func = [&rhs]() { return rhs.func(); };
@@ -30,8 +30,8 @@ public:
 			value = rhs.value;
 			func = [&value = value]() { return value.value(); };
 		} else {
-			func = rhs.func;
 			value = optional<T>();
+			func = rhs.func;
 		}
 		return *this;
 	}
