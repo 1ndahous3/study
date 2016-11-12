@@ -3,7 +3,8 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-//#include <signal.h>
+#include <stdlib.h>
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
@@ -11,49 +12,69 @@
 
 #include <pthread.h>
 
-#define PORT "3490"
-
 #define BUFFER_SIZE 32
 #define MAX_CLIENTS 10
 #define LOGIN_LENGTH 10
 
+char *ip_addr = "127.0.0.1";
+int	port_num = 3490;
+
+pthread_mutex_t mutex;
+
 enum recv_map {
-	SUCC,
+	WELCOME,
 	LIMIT,
-	LOGIN,
-	LOGIN_CORRECT
+	LOGIN_INCORRECT,
+	LOGIN_EXIST,
+	KICKED
 };
 
 char *recv_msg[] = {
-		"Welcome to the chatroom\n",
-		"Oops, too much clients\n",
-		"Enter your nickname, please:\n",
-		"Login is correct\n"
+		"* Welcome to the chatroom",
+		"* Oops, too much clients\n",
+		"* Login is incorrect, try another\n",
+		"* Login is already in use\n",
+		"* You have been kicked by admin\n"
 };
 
 struct client {
 	bool isAlive;
 	int fd;
 	char nickName[LOGIN_LENGTH];
-	//pthread_t thread;
 };
 
 struct client clients[MAX_CLIENTS];
 
-
-void sigpipe_handler (int s) {
-
-}
+void kick(struct client client, char *msg);
+void disconnect(struct client client);
 
 void broadcast(int id, char *msg) {
+	pthread_mutex_lock(&mutex);
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-			if (clients[i].isAlive && i != id) {
-				send(clients[i].fd, clients[id].nickName, strlen(clients[id].nickName), 0);
-				send(clients[i].fd, "> ", 2, 0);
-				send(clients[i].fd, msg, strlen(msg), 0);
-				send(clients[i].fd, "\n", 1, 0);
-			}
+		if (clients[i].isAlive && i != id) {
+			send(clients[i].fd, clients[id].nickName, strlen(clients[id].nickName), 0);
+			send(clients[i].fd, ": ", 2, 0);
+			send(clients[i].fd, msg, strlen(msg), 0);
+			send(clients[i].fd, "\n", 1, 0);
 		}
+	}
+	pthread_mutex_unlock(&mutex);
+}
+
+void send_client_list(int id) {
+	pthread_mutex_lock(&mutex);
+	send(clients[id].fd, "[", 1, 0);
+	send(clients[id].fd, clients[id].nickName, strlen(clients[id].nickName), 0);
+
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		if (clients[i].isAlive && i != id) {
+			send(clients[id].fd, ", ", 2, 0);
+			send(clients[id].fd, clients[i].nickName, strlen(clients[i].nickName), 0);
+		}
+
+	}
+	send(clients[id].fd, "]\n", 3, 0);
+	pthread_mutex_unlock(&mutex);
 }
 
 bool check_login(char *str) {
@@ -66,46 +87,78 @@ bool check_login(char *str) {
 }
 
 void *client_session(void *arg) {
-	//signal(SIGPIPE, sigpipe_handler);
-
 	char buff[BUFFER_SIZE];
     int id = *(int *)arg;
-    int bytes_sent;
-
-
-    send(clients[id].fd, recv_msg[SUCC], strlen(recv_msg[SUCC]), 0);
+    int bytes_recv;
 
     //login
-    char login[LOGIN_LENGTH];
-	do {
-		memset(login, 0, sizeof(login));
-		send(clients[id].fd, recv_msg[LOGIN], strlen(recv_msg[LOGIN]), MSG_NOSIGNAL);
-		recv(clients[id].fd, login, sizeof(login), 0);
-		if (errno == EPIPE) {
-			printf("* Client communication error, disconnecting.\n");
-			clients[id].isAlive = false;
-			return NULL;
-		}
-	} while (!check_login(login));
+    char login[LOGIN_LENGTH] = { 0 };
+    pthread_mutex_lock(&mutex);
+    bytes_recv = recv(clients[id].fd, login, sizeof(login), MSG_NOSIGNAL);
+    switch (bytes_recv)
+    {
+    	case -1:
+    		perror("* Receiving massage");
+    		clients[id].isAlive = false;
+    		return NULL;
+    	case 0:
+    		printf("* Client was left from the server.\n");
+    		clients[id].isAlive = false;
+    		return NULL;
+    }
+
+
+    if (errno == EPIPE) {
+    	printf("* Client communication error, disconnecting.\n");
+    	clients[id].isAlive = false;
+    	return NULL;
+    }
+
+    if (strlen(login) == 0) {
+    	kick(clients[id], recv_msg[LOGIN_INCORRECT]);
+    	return NULL;
+    }
+
+    if (!check_login(login)) {
+    	kick(clients[id], recv_msg[LOGIN_EXIST]);
+    	return NULL;
+    }
 
 	strncpy(clients[id].nickName, login, LOGIN_LENGTH);
+	pthread_mutex_unlock(&mutex);
 	printf("* Client was joined under name \"%s\"\n", clients[id].nickName);
 
-	send(clients[id].fd, recv_msg[LOGIN_CORRECT], strlen(recv_msg[LOGIN_CORRECT]), 0);
+	send(clients[id].fd, recv_msg[WELCOME], strlen(recv_msg[WELCOME]), MSG_NOSIGNAL);
+	send(clients[id].fd, ", ", 2, MSG_NOSIGNAL);
+	send(clients[id].fd, login, strlen(login), MSG_NOSIGNAL);
+	send(clients[id].fd, "\n", 1, MSG_NOSIGNAL);
 
 	while(true) {
-
-		bytes_sent = recv(clients[id].fd, buff, sizeof(buff), 0);
-		switch (bytes_sent) {
+		memset(buff, 0, sizeof(buff));
+		bytes_recv = recv(clients[id].fd, buff, sizeof(buff), MSG_NOSIGNAL | MSG_PEEK);
+		switch (bytes_recv) {
 		case -1:
-			perror("Receiving massage.");
+			perror("Receiving massage");
 			clients[id].isAlive = false;
-			return (void*)0;
+			return NULL;
 		case 0:
 			printf("* %s was left from the server.\n", clients[id].nickName);
 			clients[id].isAlive = false;
-			return (void*)0;
+			return NULL;
 		default:
+		    pthread_mutex_lock(&mutex);
+
+		    int i = 0;
+
+		    while((bytes_recv = recv(clients[id].fd, buff + i, sizeof(buff) - i, MSG_DONTWAIT)) > 0) {
+		    	i += bytes_recv;
+		    }
+		    pthread_mutex_unlock(&mutex);
+
+			if (strncmp("!list", buff, 5) == 0) {
+				send_client_list(id);
+				continue;
+			}
 			printf("%s: %s\n", clients[id].nickName, buff);
 			broadcast(id, buff);
 		}
@@ -114,88 +167,10 @@ void *client_session(void *arg) {
 }
 
 void *server_session(void *arg) {
-	/*socklen_t addr_size;
+	socklen_t addr_size;
     struct sockaddr_storage their_addr;
     pthread_t client_thread;
-    int client_fd, socket_fd = *(int *)arg;
-
-	while (true) {
-		addr_size = sizeof their_addr;
-		client_fd = accept(socket_fd, (struct sockaddr *) &their_addr,
-				&addr_size);
-		printf("Client connected.\n");
-		char buff[1024];
-
-
-
-		for (int i = 0; i < MAX_CLIENTS; i++) {
-			if (clients[i].isAlive == false) {
-
-				clients[i].fd = client_fd;
-				if (pthread_create(&client_thread, NULL, client_session, &i) != 0) {
-					perror("Creating the client thread");
-					return (void*)0;
-				}
-
-				clients[i].isAlive = true;
-				break;
-			}
-			if (i == MAX_CLIENTS - 1) {
-				printf("Connection refused.\n");
-				send(client_fd, recv_msg[LIMIT], strlen(recv_msg[LIMIT]), 0);
-			}
-		}
-	}*/
-}
-
-int main(int argc, char* argv[]) {
-	//signal(SIGPIPE, sigpipe_handler);
-
-	int ret;
-
-	pthread_t serv_thread, client_thread;
-
-    socklen_t addr_size;
-    struct addrinfo hints, *res;
-    int socket_fd;
-
-	memset(&hints, 0, sizeof hints);
-
-	hints.ai_family = AF_UNSPEC;  // использовать IPv4 или IPv6, нам неважно
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;     // Заполните для меня мой IP
-
-	if ((ret = getaddrinfo(NULL, PORT, &hints, &res)) != 0) {
-	    fprintf(stderr, "getaddrinfo error: %sn", gai_strerror(ret));
-	    return 1;
-	}
-
-	if ((socket_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1) {
-		perror("Socket was not created;\n");
-		return 1;
-	}
-
-	int n = 1;
-
-	setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &n, sizeof(int));
-
-
-	if (bind(socket_fd, res->ai_addr, res->ai_addrlen) == -1) {
-		perror("Unable to bind socket;\n");
-		return 1;
-	}
-
-	if (listen(socket_fd, 2) == -1) {
-		perror("Listen error;\n");
-		return 1;
-	}
-
-	printf("Listening for incoming connections...\n");
-	int client_fd;
-
-	struct sockaddr_storage their_addr;
-	addr_size = sizeof their_addr;
-
+	int client_fd, socket_fd = *(int *) arg;
 
 	while (true) {
 		addr_size = sizeof their_addr;
@@ -208,8 +183,8 @@ int main(int argc, char* argv[]) {
 				clients[i].fd = client_fd;
 				if (pthread_create(&client_thread, NULL, client_session, &i)
 						!= 0) {
-					perror("Creating the client thread");
-					return -1;
+					perror("* Creating the client thread");
+					return NULL;
 				}
 
 				clients[i].isAlive = true;
@@ -221,23 +196,85 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
-/*
-		char buff[32];
-		memset(buff, 0, sizeof(buff));
-		int bytes_received;
-		while ((bytes_received = recv(client_fd, buff, sizeof buff - 1, 0))) {
-			printf("%s", buff);
-			memset(buff, 0, sizeof(buff));
-		}
-		sleep(1);
-*/
-/*
-	if (pthread_create(&serv_thread, NULL, server_session, &socket_fd) != 0) {
-		perror("Creating the listener thread");
+}
+
+int main(int argc, char* argv[]) {
+
+	pthread_mutex_init(&mutex, NULL);
+	struct sockaddr_in sin = { 0 };
+	int socket_fd;
+
+	sin.sin_addr.s_addr = inet_addr(ip_addr);
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons(port_num);
+
+	int ret;
+
+	pthread_t serv_thread, client_thread;
+
+	if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+		perror("Creating socket");
 		return 1;
 	}
-	while (true) {}
-/*
 
-*/}
+	int n = 1;
+	setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &n, sizeof(int));
+
+	if (bind(socket_fd, (struct sockaddr *) &sin, sizeof(sin)) == -1) {
+		perror("Binding socket");
+		return 1;
+	}
+
+	if (listen(socket_fd, 2) == -1) {
+		perror("Listening");
+		return 1;
+	}
+
+	printf("Listening for incoming connections...\n");
+
+	if (pthread_create(&serv_thread, NULL, server_session, &socket_fd) != 0) {
+		perror("* Creating the listener thread");
+		return -1;
+	}
+
+	while (true) {
+		char buff[BUFFER_SIZE];
+		memset(buff, 0, sizeof(buff));
+		fgets(buff, BUFFER_SIZE, stdin);
+		if (strncmp(buff, "!kick", 5) == 0) {
+			char login[BUFFER_SIZE];
+			strncpy(login, buff + 6, BUFFER_SIZE - 5);
+			printf("%s\n", login);
+			for (int i = 0; i < MAX_CLIENTS; i++) {
+				if (clients[i].isAlive && (strncmp(login, clients[i].nickName, strnlen(clients[i].nickName, LOGIN_LENGTH)) == 0)) {
+					kick(clients[i], "* Kicked by admin\n");
+					break;
+				}
+			}
+		} else if (strncmp(buff, "!exit", 5)) {
+			exit(0);
+		}
+	}
+}
+
+void disconnect(struct client client) {
+	printf("* Client has been disconnected from the server");
+	if (strlen(client.nickName) != 0) {
+		printf(": %s", client.nickName);
+	}
+	printf(".\n");
+	client.isAlive = false;
+	if (client.fd) {
+		shutdown(client.fd, 1);
+		close(client.fd);
+	}
+}
+
+void kick(struct client client, char *msg) {
+	if (client.isAlive) {
+		send(client.fd, recv_msg[KICKED], strlen(recv_msg[KICKED]), MSG_NOSIGNAL);
+		send(client.fd, msg, strlen(msg), MSG_NOSIGNAL);
+		disconnect(client);
+	}
+}
 
