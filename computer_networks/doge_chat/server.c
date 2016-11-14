@@ -12,7 +12,11 @@
 
 #include <pthread.h>
 
-#define BUFFER_SIZE 32
+#include "protocol.h"
+
+#include <poll.h>
+
+
 #define MAX_CLIENTS 10
 #define LOGIN_LENGTH 10
 
@@ -26,7 +30,8 @@ enum recv_map {
 	LIMIT,
 	LOGIN_INCORRECT,
 	LOGIN_EXIST,
-	KICKED
+	KICKED,
+	ERR_PROTO
 };
 
 char *recv_msg[] = {
@@ -34,28 +39,24 @@ char *recv_msg[] = {
 		"* Oops, too much clients\n",
 		"* Login is incorrect, try another\n",
 		"* Login is already in use\n",
-		"* You have been kicked by admin\n"
+		"* You have been kicked by admin\n",
+		"* Protocol error\n"
 };
 
-struct client {
-	bool isAlive;
-	int fd;
-	char nickName[LOGIN_LENGTH];
-};
 
-struct client clients[MAX_CLIENTS];
+client clients[MAX_CLIENTS] = { 0 };
 
-void kick(struct client client, char *msg);
-void disconnect(struct client client);
+void kick_user(client client, char *msg);
+void disconnect_user(client client);
 
 void broadcast(int id, char *msg) {
 	pthread_mutex_lock(&mutex);
 	for (int i = 0; i < MAX_CLIENTS; i++) {
 		if (clients[i].isAlive && i != id) {
-			send(clients[i].fd, clients[id].nickName, strlen(clients[id].nickName), 0);
-			send(clients[i].fd, ": ", 2, 0);
-			send(clients[i].fd, msg, strlen(msg), 0);
-			send(clients[i].fd, "\n", 1, 0);
+			send_massage(clients[i].fd, clients[id].nickName);
+			send_massage(clients[i].fd, ": ");
+			send_massage(clients[i].fd, msg);
+			send_massage(clients[i].fd, "\n");
 		}
 	}
 	pthread_mutex_unlock(&mutex);
@@ -77,93 +78,52 @@ void send_client_list(int id) {
 	pthread_mutex_unlock(&mutex);
 }
 
-bool check_login(char *str) {
+bool check_login(char *msg) {
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-		if (clients[i].isAlive && (strncmp(str, clients[i].nickName, LOGIN_LENGTH) == 0)) {
+		if (clients[i].isAlive && (strncmp(msg, clients[i].nickName, LOGIN_LENGTH) == 0)) {
 			return false;
 		}
 	}
 	return true;
 }
 
-void *client_session(void *arg) {
-	char buff[BUFFER_SIZE];
-    int id = *(int *)arg;
-    int bytes_recv;
-
-    //login
-    char login[LOGIN_LENGTH] = { 0 };
-    pthread_mutex_lock(&mutex);
-    bytes_recv = recv(clients[id].fd, login, sizeof(login), MSG_NOSIGNAL);
-    switch (bytes_recv)
-    {
-    	case -1:
-    		perror("* Receiving massage");
-    		clients[id].isAlive = false;
-    		return NULL;
-    	case 0:
-    		printf("* Client was left from the server.\n");
-    		clients[id].isAlive = false;
-    		return NULL;
-    }
-
-
-    if (errno == EPIPE) {
-    	printf("* Client communication error, disconnecting.\n");
-    	clients[id].isAlive = false;
-    	return NULL;
-    }
-
-    if (strlen(login) == 0) {
-    	kick(clients[id], recv_msg[LOGIN_INCORRECT]);
-    	return NULL;
-    }
-
-    if (!check_login(login)) {
-    	kick(clients[id], recv_msg[LOGIN_EXIST]);
-    	return NULL;
-    }
-
-	strncpy(clients[id].nickName, login, LOGIN_LENGTH);
-	pthread_mutex_unlock(&mutex);
-	printf("* Client was joined under name \"%s\"\n", clients[id].nickName);
-
-	send(clients[id].fd, recv_msg[WELCOME], strlen(recv_msg[WELCOME]), MSG_NOSIGNAL);
-	send(clients[id].fd, ", ", 2, MSG_NOSIGNAL);
-	send(clients[id].fd, login, strlen(login), MSG_NOSIGNAL);
-	send(clients[id].fd, "\n", 1, MSG_NOSIGNAL);
-
-	while(true) {
-		memset(buff, 0, sizeof(buff));
-		bytes_recv = recv(clients[id].fd, buff, sizeof(buff), MSG_NOSIGNAL | MSG_PEEK);
-		switch (bytes_recv) {
-		case -1:
-			perror("Receiving massage");
-			clients[id].isAlive = false;
-			return NULL;
-		case 0:
-			printf("* %s was left from the server.\n", clients[id].nickName);
-			clients[id].isAlive = false;
-			return NULL;
-		default:
-		    pthread_mutex_lock(&mutex);
-
-		    int i = 0;
-
-		    while((bytes_recv = recv(clients[id].fd, buff + i, sizeof(buff) - i, MSG_DONTWAIT)) > 0) {
-		    	i += bytes_recv;
-		    }
-		    pthread_mutex_unlock(&mutex);
-
-			if (strncmp("!list", buff, 5) == 0) {
-				send_client_list(id);
-				continue;
-			}
-			printf("%s: %s\n", clients[id].nickName, buff);
-			broadcast(id, buff);
-		}
-
+bool log_in(int id, char *msg) {
+	if (check_login(msg)) {
+		strncpy(clients[id].nickName, msg, LOGIN_LENGTH);
+		clients[id].isLogin = true;
+		printf("* Client was joined under name \"%s\"\n", clients[id].nickName);
+		send_massage(clients[id].fd, recv_msg[WELCOME]);
+		send_massage(clients[id].fd, ", ");
+		send_massage(clients[id].fd, msg);
+		send_massage(clients[id].fd, "\n");
+		return true;
 	}
+	return false;
+}
+
+void message_handler(int id, char *msg, int *revents) {
+	if (!clients[id].isLogin) {
+		if (strlen(msg) == 0) {
+			kick_user(clients[id], recv_msg[LOGIN_INCORRECT]);
+			*revents |= POLLHUP;
+		} else if (!log_in(id, msg)) {
+			kick_user(clients[id], recv_msg[LOGIN_EXIST]);
+			*revents |= POLLHUP;
+		}
+		return;
+	}
+	printf("%s: %s\n", clients[id].nickName, msg);
+	broadcast(id, msg);
+}
+
+void errproto_handler(int id, int *revents) {
+	kick_user(clients[id], recv_msg[ERR_PROTO]);
+	*revents |= POLLERR;
+}
+
+void dc_handler(int id) {
+	clients[id].isAlive = false;
+	clients[id].isLogin = false;
 }
 
 void *server_session(void *arg) {
@@ -181,7 +141,7 @@ void *server_session(void *arg) {
 		for (int i = 0; i < MAX_CLIENTS; i++) {
 			if (clients[i].isAlive == false) {
 				clients[i].fd = client_fd;
-				if (pthread_create(&client_thread, NULL, client_session, &i)
+				if (pthread_create(&client_thread, NULL, listener, &i)
 						!= 0) {
 					perror("* Creating the client thread");
 					return NULL;
@@ -238,16 +198,16 @@ int main(int argc, char* argv[]) {
 	}
 
 	while (true) {
-		char buff[BUFFER_SIZE];
+		char buff[MAX_MESSAGE_LENGTH];
 		memset(buff, 0, sizeof(buff));
-		fgets(buff, BUFFER_SIZE, stdin);
+		fgets(buff, MAX_MESSAGE_LENGTH, stdin);
 		if (strncmp(buff, "!kick", 5) == 0) {
-			char login[BUFFER_SIZE];
-			strncpy(login, buff + 6, BUFFER_SIZE - 5);
+			char login[MAX_MESSAGE_LENGTH];
+			strncpy(login, buff + 6, MAX_MESSAGE_LENGTH - 5);
 			printf("%s\n", login);
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (clients[i].isAlive && (strncmp(login, clients[i].nickName, strnlen(clients[i].nickName, LOGIN_LENGTH)) == 0)) {
-					kick(clients[i], "* Kicked by admin\n");
+					kick_user(clients[i], "* Kicked by admin\n");
 					break;
 				}
 			}
@@ -257,24 +217,26 @@ int main(int argc, char* argv[]) {
 	}
 }
 
-void disconnect(struct client client) {
+
+void disconnect_user(client client) {
 	printf("* Client has been disconnected from the server");
 	if (strlen(client.nickName) != 0) {
 		printf(": %s", client.nickName);
 	}
 	printf(".\n");
 	client.isAlive = false;
+	client.isLogin = false;
 	if (client.fd) {
 		shutdown(client.fd, 1);
 		close(client.fd);
 	}
 }
 
-void kick(struct client client, char *msg) {
+void kick_user(client client, char *msg) {
 	if (client.isAlive) {
 		send(client.fd, recv_msg[KICKED], strlen(recv_msg[KICKED]), MSG_NOSIGNAL);
 		send(client.fd, msg, strlen(msg), MSG_NOSIGNAL);
-		disconnect(client);
+		disconnect_user(client);
 	}
 }
 

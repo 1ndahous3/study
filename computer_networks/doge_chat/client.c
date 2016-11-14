@@ -7,6 +7,7 @@
 #include <signal.h>
 
 #include "chatgui.h"
+#include "protocol.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -16,41 +17,21 @@
 #include <pthread.h>
 #include <poll.h>
 
+client clients[] = { 0 };
+
 int socket_fd;
 pthread_t listen_thread;
 
-//limits
-#define BUFFER_SIZE 32
-#define LOGIN_LENGTH 32
+void message_handler(int id, char *msg, int *revents) {
+	gtk_text_buffer_insert_at_cursor(buffer_chat, msg, strlen(msg));
+}
 
-void* listener(void *arg) {
-	char buffer[BUFFER_SIZE];
-	struct pollfd pfd = { *(int *)arg, 0, 0 };
+void errproto_handler(int id, int *revents) {
+	*revents |= POLLERR;
+}
 
-	while (pfd.revents == 0) {
-		poll(&pfd, 1, 100);
-		memset(buffer, 0, sizeof(buffer));
-
-		while (recv(pfd.fd, buffer, sizeof(buffer), MSG_DONTWAIT) > 0) {
-			printf("%s\n", (char *)buffer_chat);
-			gtk_text_buffer_insert_at_cursor(buffer_chat, buffer,
-									strlen(buffer));
-			memset(buffer, 0, sizeof(buffer));
-		}
-	}
-	if (pfd.revents & POLLERR) {
-		printf("* An error has occurred on the stream.\n");
-	}
-	if (pfd.revents & POLLHUP) {
-		printf("* Connection has been closed.\n");
-	}
-	if (pfd.revents & POLLNVAL) {
-		printf("* The specified fd value is invalid.\n");
-	}
-
+void dc_handler(int id) {
 	gtk_label_set_text(label_state, "Offline");
-
-	return NULL;
 }
 
 int init_connect(char* ip_addr, int port_num) {
@@ -76,12 +57,6 @@ int init_connect(char* ip_addr, int port_num) {
 
 int main(int argc, char* argv[]) {
 	init_gui(argc, argv);
-}
-
-void clean_buffer_chat() {
-	GtkTextIter start, end;
-	gtk_text_buffer_get_bounds(buffer_chat, &start, &end);
-	gtk_text_buffer_delete(buffer_chat, &start, &end);
 }
 
 #include "signals.h"

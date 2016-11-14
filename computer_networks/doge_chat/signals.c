@@ -5,17 +5,18 @@ void send_msg() {
 	gchar *msg;
 
 	gtk_text_buffer_get_bounds(buffer_send, &start, &end);
-	msg = gtk_text_buffer_get_text (buffer_send, &start, &end, FALSE);
+	msg = gtk_text_buffer_get_text(buffer_send, &start, &end, FALSE);
 
 	gtk_text_buffer_insert_at_cursor(buffer_chat, "Me: ", 4);
 	gtk_text_buffer_insert_at_cursor(buffer_chat, msg, strlen(msg));
 	gtk_text_buffer_insert_at_cursor(buffer_chat, "\n", 1);
 
-	send(socket_fd, msg, strlen(msg) + 1, 0);
+	send_massage(socket_fd, msg);
+
 	gtk_text_buffer_delete(buffer_send, &start, &end);
 }
 
-void disconnect() {
+void disconnect_user() {
 	if (socket_fd) {
 		shutdown(socket_fd, 1);
 		close(socket_fd);
@@ -89,12 +90,12 @@ void connect_dialog_open() {
 	switch (gtk_dialog_run(dialog_connect))
 	{
 		case GTK_RESPONSE_OK:
-			disconnect();
+			disconnect_user();
 			clean_buffer_chat();
-			socket_fd = init_connect((char *) gtk_entry_buffer_get_text(buffer_ip),
+			socket_fd = clients->fd = init_connect((char *) gtk_entry_buffer_get_text(buffer_ip),
 					atoi(gtk_entry_buffer_get_text(buffer_port)));
-			send(socket_fd, login, strlen(login) + 1, 0);
-			if (pthread_create(&listen_thread, NULL, listener, &socket_fd) != 0) {
+			printf("sent: %d\n", send_massage(socket_fd, login));
+			if (pthread_create(&listen_thread, NULL, listener, &id) != 0) {
 				perror("Creating the listener thread");
 			}
 			snprintf(state, 50, "Online (%s:%d)", ip_addr, port_num);

@@ -6,12 +6,16 @@
 
 #include "chatgui.h"
 
+#include "protocol.h"
+
+
 extern int socket_fd;
 extern pthread_t listen_thread;
-extern void* listener(void *arg);
+//extern void* listener(void *arg);
+//extern int send_massage(int fd, char *msg);
 
 void send_msg();
-void disconnect();
+void disconnect_user();
 void save_dialog_open();
 void login_dialog_open();
 void login_dialog_cancel();

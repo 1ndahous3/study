@@ -21,6 +21,7 @@ GtkLabel		*label_state,
 char 			main_title[50],
 				*login,
 				*ip_addr;
-int				port_num;
+int				id,
+				port_num;
 
 void init_gui(int argc, char* argv[]);

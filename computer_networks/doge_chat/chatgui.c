@@ -8,7 +8,7 @@ void init_gui(int argc, char* argv[]) {
 				*entry_port;
 
 	gtk_init(&argc, &argv);
-
+	id 			= 0;
 	builder		= gtk_builder_new();
 	gtk_builder_add_from_file(builder, "client.glade", NULL);
 
@@ -50,4 +50,10 @@ void init_gui(int argc, char* argv[]) {
 
 	gtk_main();
 
+}
+
+void clean_buffer_chat() {
+	GtkTextIter start, end;
+	gtk_text_buffer_get_bounds(buffer_chat, &start, &end);
+	gtk_text_buffer_delete(buffer_chat, &start, &end);
 }
