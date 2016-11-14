@@ -251,7 +251,7 @@
                   <object class="GtkTextView" id="send_area">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <signal name="key-press-event" handler="on_key_press" swapped="no"/>
+                    <signal name="key-press-event" handler="send_area_key_press" swapped="no"/>
                   </object>
                 </child>
               </object>
@@ -347,6 +347,7 @@
                 <property name="text" translatable="yes">127.0.0.1</property>
                 <property name="placeholder_text" translatable="yes">IP address</property>
                 <property name="input_purpose">digits</property>
+                <signal name="key-press-event" handler="connect_entry_key_press" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -374,6 +375,7 @@
                 <property name="text" translatable="yes">3490</property>
                 <property name="placeholder_text" translatable="yes">Port</property>
                 <property name="input_purpose">digits</property>
+                <signal name="key-press-event" handler="connect_entry_key_press" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -458,6 +460,7 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="placeholder_text" translatable="yes">Login</property>
+            <signal name="key-press-event" handler="login_entry_key_press" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>

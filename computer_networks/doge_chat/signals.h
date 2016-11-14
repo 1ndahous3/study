@@ -21,4 +21,7 @@ void login_dialog_ok();
 void connect_dialog_open();
 void connect_dialog_cancel();
 void connect_dialog_connect();
-gboolean on_key_press(GtkWidget* widget, GdkEventKey* pKey, gpointer userdata);
+
+gboolean login_entry_key_press(GtkWidget* widget, GdkEventKey* pKey, gpointer userdata);
+gboolean connect_entry_key_press(GtkWidget* widget, GdkEventKey* pKey, gpointer userdata);
+gboolean send_area_key_press(GtkWidget* widget, GdkEventKey* pKey, gpointer userdata);

@@ -12,7 +12,7 @@ all: server client
 server: $(SERVER_SRCS)
 	$(CC) $(CFLAGS) $(SERVER_NAME) $(SERVER_SRCS)
 
-client: $(CLIENT_SRCS)
+client: $(CLIENT_SRCS) client.glade
 	$(CC) $(CFLAGS) $(CLIENT_NAME) $(CLIENT_SRCS) $(GTKFLAGS)
 
 clean:

@@ -122,7 +122,29 @@ void connect_dialog_connect() {
 	gtk_dialog_response(dialog_connect, GTK_RESPONSE_OK);
 }
 
-gboolean on_key_press(GtkWidget* widget, GdkEventKey* pKey, gpointer userdata) {
+gboolean login_entry_key_press(GtkWidget* widget, GdkEventKey* pKey, gpointer userdata) {
+	if (pKey->type == GDK_KEY_PRESS) {
+			switch (pKey->keyval) {
+			case GDK_KEY_Return:
+				login_dialog_ok();
+				return TRUE;
+			}
+		}
+		return FALSE;
+}
+
+gboolean connect_entry_key_press(GtkWidget* widget, GdkEventKey* pKey, gpointer userdata) {
+	if (pKey->type == GDK_KEY_PRESS) {
+			switch (pKey->keyval) {
+			case GDK_KEY_Return:
+				connect_dialog_connect();
+				return TRUE;
+			}
+		}
+		return FALSE;
+}
+
+gboolean send_area_key_press(GtkWidget* widget, GdkEventKey* pKey, gpointer userdata) {
 	if (pKey->type == GDK_KEY_PRESS) {
 		switch (pKey->keyval) {
 		case GDK_KEY_Return:
