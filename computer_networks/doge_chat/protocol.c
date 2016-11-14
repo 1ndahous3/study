@@ -1,6 +1,6 @@
 #include "protocol.h"
 
-unsigned int crc32(char *msg, size_t size) {
+unsigned int crc32m(char *msg, size_t size) {
 	unsigned int byte, crc, mask;
 	crc = 0xFFFFFFFF;
 	for (int i = 0; i < size && msg[i] != 0; i++) {
@@ -17,7 +17,7 @@ unsigned int crc32(char *msg, size_t size) {
 prot_msg prot_from_msg(char *msg, size_t size) {
 	prot_msg pmsg;
 	pmsg.length = size;
-	pmsg.hash = crc32(msg, size);
+	pmsg.hash = crc32m(msg, size);
 	strcpy(pmsg.text, msg);
 	return pmsg;
 }
@@ -28,7 +28,7 @@ void msg_from_prot(char *msg, prot_msg *pmsg) {
 
 bool check_msg_info(prot_msg *pmsg) {
 	return pmsg->length == strnlen(pmsg->text, MAX_MESSAGE_LENGTH) ?
-			pmsg->hash == crc32(pmsg->text, pmsg->length) : false;
+			pmsg->hash == crc32m(pmsg->text, pmsg->length) : false;
 }
 
 int send_massage(int fd, char *msg) {

@@ -10,6 +10,7 @@ GtkWidget		*window;
 GtkBuilder		*builder;
 GtkDialog		*dialog_connect,
 				*dialog_login;
+GtkAboutDialog	*dialog_about;
 GtkTextBuffer	*buffer_chat,
 				*buffer_send;
 GtkEntryBuffer	*buffer_login,

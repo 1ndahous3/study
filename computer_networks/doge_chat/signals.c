@@ -122,6 +122,18 @@ void connect_dialog_connect() {
 	gtk_dialog_response(dialog_connect, GTK_RESPONSE_OK);
 }
 
+void about_dialog_open() {
+	switch (gtk_dialog_run(GTK_DIALOG(dialog_about)))
+	{
+		case GTK_RESPONSE_CANCEL:
+			gtk_widget_hide(GTK_WIDGET(dialog_about));
+			break;
+	}
+}
+void about_dialog_close() {
+	gtk_dialog_response(GTK_DIALOG(dialog_about), GTK_RESPONSE_CANCEL);
+}
+
 gboolean login_entry_key_press(GtkWidget* widget, GdkEventKey* pKey, gpointer userdata) {
 	if (pKey->type == GDK_KEY_PRESS) {
 			switch (pKey->keyval) {

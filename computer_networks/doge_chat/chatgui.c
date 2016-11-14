@@ -28,6 +28,7 @@ void init_gui(int argc, char* argv[]) {
 
 	dialog_connect	= GTK_DIALOG(gtk_builder_get_object(builder, "dialog_connect"));
 	dialog_login	= GTK_DIALOG(gtk_builder_get_object(builder, "dialog_login"));
+	dialog_about	= GTK_ABOUT_DIALOG(gtk_builder_get_object(builder, "dialog_about"));
 
 	gtk_builder_connect_signals(builder, NULL);
 	login = "";

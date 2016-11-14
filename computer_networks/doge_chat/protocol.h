@@ -33,7 +33,7 @@ void message_handler(int id, char *msg, short int *revents);
 void errproto_handler(int id, short int *revents);
 void dc_handler(int id);
 
-unsigned int crc32(char *msg, size_t size);
+unsigned int crc32m(char *msg, size_t size);
 void msg_from_prot(char *msg, prot_msg *pmsg);
 prot_msg prot_from_msg(char *msg, size_t size);
 bool check_msg_info(prot_msg *pmsg);
