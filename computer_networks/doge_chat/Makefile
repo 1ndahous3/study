@@ -2,7 +2,7 @@ SERVER_NAME=server
 CLIENT_NAME=client
 SERVER_SRCS=server.c protocol.c
 CLIENT_SRCS=client.c chatgui.c signals.c protocol.c 
-CFLAGS=-g -pthread -Wall -o
+CFLAGS=-g -O1 -pthread -Wall -o
 GTKFLAGS=-export-dynamic `pkg-config --cflags --libs gtk+-3.0`
 CC=gcc
 

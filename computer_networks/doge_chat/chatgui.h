@@ -25,3 +25,4 @@ int				id,
 				port_num;
 
 void init_gui(int argc, char* argv[]);
+void clean_buffer_chat();

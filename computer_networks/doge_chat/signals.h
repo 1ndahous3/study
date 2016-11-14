@@ -5,14 +5,12 @@
 #include <netinet/in.h>
 
 #include "chatgui.h"
-
 #include "protocol.h"
+#include "client.h"
 
 
 extern int socket_fd;
 extern pthread_t listen_thread;
-//extern void* listener(void *arg);
-//extern int send_massage(int fd, char *msg);
 
 void send_msg();
 void disconnect_user();

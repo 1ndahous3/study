@@ -94,7 +94,7 @@ void connect_dialog_open() {
 			clean_buffer_chat();
 			socket_fd = clients->fd = init_connect((char *) gtk_entry_buffer_get_text(buffer_ip),
 					atoi(gtk_entry_buffer_get_text(buffer_port)));
-			printf("sent: %d\n", send_massage(socket_fd, login));
+			send_massage(socket_fd, login);
 			if (pthread_create(&listen_thread, NULL, listener, &id) != 0) {
 				perror("Creating the listener thread");
 			}

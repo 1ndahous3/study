@@ -29,11 +29,6 @@ void init_gui(int argc, char* argv[]) {
 	dialog_connect	= GTK_DIALOG(gtk_builder_get_object(builder, "dialog_connect"));
 	dialog_login	= GTK_DIALOG(gtk_builder_get_object(builder, "dialog_login"));
 
-	//gtk_dialog_add_button(dialog_connect, "test", GTK_RESPONSE_CANCEL);
-
-
-	//send_button = GTK_WIDGET(gtk_builder_get_object(builder, "send_button"));
-
 	gtk_builder_connect_signals(builder, NULL);
 	login = "";
 	gtk_window_set_title(GTK_WINDOW(window), _TITLE_);
@@ -41,12 +36,6 @@ void init_gui(int argc, char* argv[]) {
 	g_object_unref(builder);
 
 	gtk_widget_show(window);
-
-	/*
-	if (pthread_create(&gui_thread, NULL, gui_main, NULL) != 0) {
-		perror("Creating the listener thread...\n");
-		return;
-	}*/
 
 	gtk_main();
 
