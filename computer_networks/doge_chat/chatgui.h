@@ -4,7 +4,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
-#define _TITLE_ "Doge Chat v0.2"
+#define _TITLE_ "Doge Chat v0.4"
 
 GtkWidget		*window;
 GtkBuilder		*builder;

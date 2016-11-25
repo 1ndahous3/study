@@ -12,7 +12,6 @@ int main(int argc, char* argv[]) {
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(port_num);
 
-
 	pthread_t serv_thread;
 
 	if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {

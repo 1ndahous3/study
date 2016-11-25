@@ -14,74 +14,89 @@ unsigned int crc32m(char *msg, size_t size) {
 	return ~crc;
 }
 
-prot_msg prot_from_msg(char *msg, size_t size) {
-	prot_msg pmsg;
-	pmsg.length = size;
-	pmsg.hash = crc32m(msg, size);
-	strcpy(pmsg.text, msg);
+meta_info meta_from_msg(char *msg) {
+	meta_info pmsg;
+	pmsg.length = strlen(msg) + 1;
+	pmsg.hash = crc32m(msg, pmsg.length);
 	return pmsg;
 }
 
-void msg_from_prot(char *msg, prot_msg *pmsg) {
-	strcpy(msg, pmsg->text);
+bool check_meta_info(meta_info *pmsg, char *msg) {
+	return pmsg->length == strlen(msg) + 1 ?
+			pmsg->hash == crc32m(msg, pmsg->length - 1) : false;
 }
 
-bool check_msg_info(prot_msg *pmsg) {
-	return pmsg->length == strnlen(pmsg->text, MAX_MESSAGE_LENGTH) ?
-			pmsg->hash == crc32m(pmsg->text, pmsg->length) : false;
-}
-
-int send_massage(int fd, char *msg) {
+int send_string(int fd, char *msg) {
 	int sent = 0;
-	char chunk[MAX_MESSAGE_LENGTH];
-	int size;
-	for (size_t offset = 0; offset < strlen(msg); offset += size) {
-		size = MIN(MAX_MESSAGE_LENGTH - 1, (strlen(msg) - offset) % (MAX_MESSAGE_LENGTH - 1)) == 0
-				? (strlen(msg) - offset) % (MAX_MESSAGE_LENGTH - 1)
-				: MAX_MESSAGE_LENGTH - 1;
-		strncpy(chunk, msg + offset, size);
-		chunk[MAX_MESSAGE_LENGTH - 1] = '\0';
-		sent += send_massage_chunk(fd, chunk);
+	for (char *g = strtok(msg, "$"); g != NULL; g = strtok(NULL, "$")) {
+		sent += send_massage(fd, msg);
 	}
 	return sent;
 }
 
-int send_massage_chunk(int fd, char *msg) {
-	prot_msg pmsg = prot_from_msg(msg, strnlen(msg, MAX_MESSAGE_LENGTH));
-	return send(fd, &pmsg, sizeof(prot_msg), 0);
+int send_massage(int fd, char *msg) {
+	meta_info pmsg = meta_from_msg(msg);
+	int sent = 0;
+	for (size_t offset = 0; offset < sizeof(pmsg); offset += sent) {
+		sent += send(fd, &pmsg + offset, sizeof(pmsg) - sent, 0);
+	}
+	sent = 0;
+	for (size_t offset = 0; offset < pmsg.length - 1; offset += sent) {
+		sent += send(fd, msg + offset, pmsg.length - 1 - sent, 0);
+	}
+	sent += send(fd, "$", 1, 0);
+	return sent;
+}
+
+bool recv_massage(struct pollfd *pfd, char *msg, size_t size) {
+	int recved;
+	size_t offset = 0;
+
+	while (pfd->revents == 0) {
+		poll(pfd, 1, 100);
+		while ((recved = recv(pfd->fd, (void *) msg + offset, size - offset,
+				MSG_DONTWAIT)) > 0) {
+			offset += recved;
+			if (offset == size) {
+				return true;
+			}
+		}
+		if (recved == -1 && errno != EAGAIN) {
+			pfd->revents |= POLLERR;
+		}
+		if (recved == 0) {
+			pfd->revents |= POLLHUP;
+		}
+	}
+
+	return false;
 }
 
 void *listener(void *arg) {
-	char msg[MAX_MESSAGE_LENGTH];
-	prot_msg pmsg;
+	meta_info pmsg;
 
     int id = *(int *)arg;
 
 	struct pollfd pfd = { clients[id].fd, 0, 0 };
-	size_t offset = 0;
-	int recved;
 
 	while (pfd.revents == 0) {
 		poll(&pfd, 1, 100);
 
-		while ((recved = recv(pfd.fd, (void *) (&pmsg + offset), sizeof(prot_msg) - offset, MSG_DONTWAIT)) > 0) {
-			offset += recved;
-			if (offset == sizeof(prot_msg)) {
-				if (check_msg_info(&pmsg)) {
-					msg_from_prot(msg, &pmsg);
-					message_handler(id, msg, &pfd.revents);
-				} else {
-					errproto_handler(id, &pfd.revents);
-				}
-				offset = 0;
-				continue;
-			}
+		if (!recv_massage(&pfd, (char *) &pmsg, sizeof(meta_info))) {
+			continue;
 		}
-		if (recved == -1 && errno != EAGAIN) {
-			pfd.revents |= POLLERR;
+		char *msg = (char *) alloca(pmsg.length);
+		//printf("len = %lu\n", pmsg.length);
+		if (!recv_massage(&pfd, msg, pmsg.length)) {
+			continue;
 		}
-		if (recved == 0) {
-			pfd.revents |= POLLHUP;
+		msg[pmsg.length - 1] = '\0';
+		//printf("%s\n", msg);
+
+		if (check_meta_info(&pmsg, msg)) {
+			message_handler(id, msg, &pfd.revents);
+		} else {
+			errproto_handler(id, &pfd.revents);
 		}
 	}
 

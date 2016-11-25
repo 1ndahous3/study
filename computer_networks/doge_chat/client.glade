@@ -259,7 +259,7 @@
     <property name="decorated">False</property>
     <property name="transient_for">window_main</property>
     <property name="program_name">DogeChat </property>
-    <property name="version">version 0.3</property>
+    <property name="version">version 0.4</property>
     <property name="copyright" translatable="yes">Copyright © 2016 Dudin Roman.</property>
     <property name="logo_icon_name">go-next</property>
     <property name="license_type">gpl-2-0</property>
