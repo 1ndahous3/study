@@ -16,8 +16,8 @@ unsigned int crc32m(char *msg, size_t size) {
 
 meta_info meta_from_msg(char *msg) {
 	meta_info pmsg;
-	pmsg.length = strlen(msg) + 1;
-	pmsg.hash = crc32m(msg, pmsg.length);
+	pmsg.length = htole32(strlen(msg) + 1);
+	pmsg.hash = htole32(crc32m(msg, pmsg.length));
 	return pmsg;
 }
 
@@ -49,27 +49,24 @@ int send_message(int fd, char *msg) {
 }
 
 bool recv_message(struct pollfd *pfd, char *msg, size_t size) {
-	int recved;
+	int recved = 0;
 	size_t offset = 0;
 
-	while (pfd->revents == 0) {
-		poll(pfd, 1, 100);
-		while ((recved = recv(pfd->fd, (void *) msg + offset, size - offset,
-				MSG_DONTWAIT)) > 0) {
-			offset += recved;
-			if (offset == size) {
-				return true;
+	while (true) {
+		if (poll(pfd, 1, 100) > 0) {
+			if (pfd->revents & POLLIN) {
+				pfd->revents = 0;
+				while ((recved = recv(pfd->fd, (void *) msg + offset, size - offset, MSG_DONTWAIT)) > 0) {
+					offset += recved;
+					if (offset == size) {
+						return true;
+					}
+				}
+			} else if (pfd->revents) {
+				return false;
 			}
 		}
-		if (recved == -1 && errno != EAGAIN) {
-			pfd->revents |= POLLERR;
-		}
-		if (recved == 0) {
-			pfd->revents |= POLLHUP;
-		}
 	}
-
-	return false;
 }
 
 void *listener(void *arg) {
@@ -77,14 +74,16 @@ void *listener(void *arg) {
 
     int id = *(int *)arg;
 
-	struct pollfd pfd = { clients[id].fd, 0, 0 };
+	struct pollfd pfd = { clients[id].fd, POLLIN, 0 };
 
 	while (pfd.revents == 0) {
-		poll(&pfd, 1, 100);
 
 		if (!recv_message(&pfd, (char *) &pmsg, sizeof(meta_info))) {
 			continue;
 		}
+		pmsg.length = le32toh(pmsg.length);
+		pmsg.hash = le32toh(pmsg.hash);
+
 		char *msg = (char *) alloca(pmsg.length);
 		//printf("len = %lu\n", pmsg.length);
 		if (!recv_message(&pfd, msg, pmsg.length)) {

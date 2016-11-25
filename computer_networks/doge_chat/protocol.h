@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <errno.h>
+#include <endian.h>
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -17,8 +18,8 @@
 
 #pragma pack(push, 1)
 typedef struct {
-	size_t length;
-	unsigned int hash;
+	uint32_t length;
+	uint32_t hash;
 } meta_info;
 #pragma pack(pop)
 
