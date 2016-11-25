@@ -29,12 +29,12 @@ bool check_meta_info(meta_info *pmsg, char *msg) {
 int send_string(int fd, char *msg) {
 	int sent = 0;
 	for (char *g = strtok(msg, "$"); g != NULL; g = strtok(NULL, "$")) {
-		sent += send_massage(fd, msg);
+		sent += send_message(fd, g);
 	}
 	return sent;
 }
 
-int send_massage(int fd, char *msg) {
+int send_message(int fd, char *msg) {
 	meta_info pmsg = meta_from_msg(msg);
 	int sent = 0;
 	for (size_t offset = 0; offset < sizeof(pmsg); offset += sent) {
@@ -48,7 +48,7 @@ int send_massage(int fd, char *msg) {
 	return sent;
 }
 
-bool recv_massage(struct pollfd *pfd, char *msg, size_t size) {
+bool recv_message(struct pollfd *pfd, char *msg, size_t size) {
 	int recved;
 	size_t offset = 0;
 
@@ -82,12 +82,12 @@ void *listener(void *arg) {
 	while (pfd.revents == 0) {
 		poll(&pfd, 1, 100);
 
-		if (!recv_massage(&pfd, (char *) &pmsg, sizeof(meta_info))) {
+		if (!recv_message(&pfd, (char *) &pmsg, sizeof(meta_info))) {
 			continue;
 		}
 		char *msg = (char *) alloca(pmsg.length);
 		//printf("len = %lu\n", pmsg.length);
-		if (!recv_massage(&pfd, msg, pmsg.length)) {
+		if (!recv_message(&pfd, msg, pmsg.length)) {
 			continue;
 		}
 		msg[pmsg.length - 1] = '\0';

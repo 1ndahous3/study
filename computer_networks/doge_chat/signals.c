@@ -11,7 +11,7 @@ void send_msg() {
 	gtk_text_buffer_insert_at_cursor(buffer_chat, msg, strlen(msg));
 	gtk_text_buffer_insert_at_cursor(buffer_chat, "\n", 1);
 
-	send_massage(socket_fd, msg);
+	send_string(socket_fd, msg);
 
 	gtk_text_buffer_delete(buffer_send, &start, &end);
 }
@@ -94,7 +94,7 @@ void connect_dialog_open() {
 			clean_buffer_chat();
 			socket_fd = clients->fd = init_connect((char *) gtk_entry_buffer_get_text(buffer_ip),
 					atoi(gtk_entry_buffer_get_text(buffer_port)));
-			send_massage(socket_fd, login);
+			send_string(socket_fd, login);
 			if (pthread_create(&listen_thread, NULL, listener, &id) != 0) {
 				perror("Creating the listener thread");
 			}

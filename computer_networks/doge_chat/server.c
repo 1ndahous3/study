@@ -125,10 +125,10 @@ void broadcast(int id, char *msg) {
 	pthread_mutex_lock(&mutex);
 	for (int i = 0; i < MAX_CLIENTS; i++) {
 		if (clients[i].isAlive && i != id) {
-			send_massage(clients[i].fd, clients[id].nickName);
-			send_massage(clients[i].fd, ": ");
-			send_massage(clients[i].fd, msg);
-			send_massage(clients[i].fd, "\n");
+			send_message(clients[i].fd, clients[id].nickName);
+			send_message(clients[i].fd, ": ");
+			send_message(clients[i].fd, msg);
+			send_message(clients[i].fd, "\n");
 		}
 	}
 	pthread_mutex_unlock(&mutex);
@@ -136,17 +136,17 @@ void broadcast(int id, char *msg) {
 
 void send_client_list(int id) {
 	pthread_mutex_lock(&mutex);
-	send_massage(clients[id].fd, "[");
-	send_massage(clients[id].fd, clients[id].nickName);
+	send_message(clients[id].fd, "[");
+	send_message(clients[id].fd, clients[id].nickName);
 
 	for (int i = 0; i < MAX_CLIENTS; i++) {
 		if (clients[i].isAlive && i != id) {
-			send_massage(clients[id].fd, ", ");
-			send_massage(clients[id].fd, clients[i].nickName);
+			send_message(clients[id].fd, ", ");
+			send_message(clients[id].fd, clients[i].nickName);
 		}
 
 	}
-	send_massage(clients[id].fd, "]\n");
+	send_message(clients[id].fd, "]\n");
 	pthread_mutex_unlock(&mutex);
 }
 
@@ -155,10 +155,10 @@ bool log_in(int id, char *msg) {
 		strncpy(clients[id].nickName, msg, LOGIN_LENGTH);
 		clients[id].isLogin = true;
 		printf("* Client was joined under name \"%s\"\n", clients[id].nickName);
-		send_massage(clients[id].fd, recv_msg[WELCOME]);
-		send_massage(clients[id].fd, ", ");
-		send_massage(clients[id].fd, msg);
-		send_massage(clients[id].fd, "\n");
+		send_message(clients[id].fd, recv_msg[WELCOME]);
+		send_message(clients[id].fd, ", ");
+		send_message(clients[id].fd, msg);
+		send_message(clients[id].fd, "\n");
 		return true;
 	}
 	return false;
