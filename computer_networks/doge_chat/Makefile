@@ -1,8 +1,8 @@
 SERVER_NAME=server
 CLIENT_NAME=client
-SERVER_SRCS=server.c protocol.c
-CLIENT_SRCS=client.c chatgui.c signals.c protocol.c 
-CFLAGS=-g -O1 -pthread -Wall -o
+SERVER_SRCS=server.c protocol.c message.pb-c.c
+CLIENT_SRCS=client.c chatgui.c signals.c protocol.c message.pb-c.c 
+CFLAGS=-g -O1 -pthread -lprotobuf-c -Wall -o
 GTKFLAGS=-export-dynamic `pkg-config --cflags --libs gtk+-3.0`
 CC=gcc
 

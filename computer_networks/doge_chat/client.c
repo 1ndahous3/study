@@ -25,8 +25,21 @@ int init_connect(char* ip_addr, int port_num) {
 	return socket_fd;
 }
 
-void message_handler(int id, char *msg, short int *revents) {
-	gtk_text_buffer_insert_at_cursor(buffer_chat, msg, strlen(msg));
+void message_handler(int id, char **msg, uint32_t count, Type type, short int *revents) {
+	printf("%d\n", count);
+	if (type == TYPE__text) {
+		for (uint32_t i = 0; i < count; i++) {
+			gtk_text_buffer_insert_at_cursor(buffer_chat, msg[i],
+					strlen(msg[i]));
+		}
+	} else if (type == TYPE__list) {
+		for (uint32_t i = 0; i < count; i++) {
+			gtk_text_buffer_insert_at_cursor(buffer_chat, "[", 1);
+			gtk_text_buffer_insert_at_cursor(buffer_chat, msg[i],
+					strlen(msg[i]));
+			gtk_text_buffer_insert_at_cursor(buffer_chat, "]", 1);
+		}
+	}
 }
 
 void errproto_handler(int id, short int *revents) {

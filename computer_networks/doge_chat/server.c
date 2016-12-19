@@ -91,24 +91,34 @@ void *server_session(void *arg) {
 	}
 }
 
-void message_handler(int id, char *msg, short int *revents) {
-	if (!clients[id].isLogin) {
-		if (strlen(msg) == 0) {
-			kick_user(clients[id], recv_msg[LOGIN_INCORRECT]);
-			*revents |= POLLHUP;
-		} else if (!log_in(id, msg)) {
-			kick_user(clients[id], recv_msg[LOGIN_EXIST]);
-			*revents |= POLLHUP;
+void message_handler(int id, char **msg, uint32_t count, Type type, short int *revents) {
+	switch (type)
+	{
+	case TYPE__text:
+		if (!clients[id].isLogin) {
+			if (strlen(msg[0]) == 0) {
+				kick_user(clients[id], recv_msg[LOGIN_INCORRECT]);
+				*revents |= POLLHUP;
+			} else if (!log_in(id, msg[0])) {
+				kick_user(clients[id], recv_msg[LOGIN_EXIST]);
+				*revents |= POLLHUP;
+			}
+			return;
 		}
-		return;
-	}
-
-	if (!strcmp(msg, "!list")) {
+		break;
+	case TYPE__list:
 		send_client_list(id);
 		return;
+	case TYPE__dc:
+		kick_user(clients[id], "* disconnect");
+		*revents |= POLLHUP;
+		return;
+	default: break;
 	}
-	printf("%s: %s\n", clients[id].nickName, msg);
-	broadcast(id, msg);
+	for (uint32_t i = 0; i < count; i++) {
+		printf("%s: %s\n", clients[id].nickName, msg[i]);
+		broadcast(id, msg[i]);
+	}
 }
 
 void errproto_handler(int id, short int *revents) {
@@ -125,10 +135,13 @@ void broadcast(int id, char *msg) {
 	pthread_mutex_lock(&mutex);
 	for (int i = 0; i < MAX_CLIENTS; i++) {
 		if (clients[i].isAlive && i != id) {
-			send_message(clients[i].fd, clients[id].nickName);
-			send_message(clients[i].fd, ": ");
-			send_message(clients[i].fd, msg);
-			send_message(clients[i].fd, "\n");
+			char **smsg = (char **)alloca(4 * sizeof(char*));
+			smsg[0] = clients[id].nickName;
+			smsg[1] = ": ";
+			smsg[2] = msg;
+			smsg[3] = "\n";
+
+			send_buffer(clients[i].fd, smsg, 4, TYPE__text);
 		}
 	}
 	pthread_mutex_unlock(&mutex);
@@ -136,17 +149,16 @@ void broadcast(int id, char *msg) {
 
 void send_client_list(int id) {
 	pthread_mutex_lock(&mutex);
-	send_message(clients[id].fd, "[");
-	send_message(clients[id].fd, clients[id].nickName);
+	char **smsg = (char **)alloca(active_users * sizeof(char*));
 
-	for (int i = 0; i < MAX_CLIENTS; i++) {
-		if (clients[i].isAlive && i != id) {
-			send_message(clients[id].fd, ", ");
-			send_message(clients[id].fd, clients[i].nickName);
+	for (int i = 0, j = 0; i < MAX_CLIENTS; i++) {
+		if (clients[i].isAlive) {
+			smsg[j++] = clients[i].nickName;
 		}
-
 	}
-	send_message(clients[id].fd, "]\n");
+	printf("%d : %s\n", active_users, smsg[0]);
+
+	send_buffer(clients[id].fd, smsg, active_users, TYPE__list);
 	pthread_mutex_unlock(&mutex);
 }
 
@@ -154,11 +166,15 @@ bool log_in(int id, char *msg) {
 	if (check_login(msg)) {
 		strncpy(clients[id].nickName, msg, LOGIN_LENGTH);
 		clients[id].isLogin = true;
+		active_users++;
 		printf("* Client was joined under name \"%s\"\n", clients[id].nickName);
-		send_message(clients[id].fd, recv_msg[WELCOME]);
-		send_message(clients[id].fd, ", ");
-		send_message(clients[id].fd, msg);
-		send_message(clients[id].fd, "\n");
+		char **smsg = (char **) alloca(4 * sizeof(char*));
+		smsg[0] = recv_msg[WELCOME];
+		smsg[1] = ", ";
+		smsg[2] = msg;
+		smsg[3] = "\n";
+		send_buffer(clients[id].fd, smsg, active_users, TYPE__text);
+
 		return true;
 	}
 	return false;
@@ -181,6 +197,7 @@ void disconnect_user(client client) {
 	printf(".\n");
 	client.isAlive = false;
 	client.isLogin = false;
+	active_users--;
 	if (client.fd) {
 		shutdown(client.fd, 1);
 		close(client.fd);

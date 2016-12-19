@@ -1,0 +1,10 @@
+enum Type {
+	list = 1;
+	text = 2;
+	dc = 3;
+}
+
+message Message {
+	required Type type = 1 [default = text];
+	repeated string data = 2;
+}

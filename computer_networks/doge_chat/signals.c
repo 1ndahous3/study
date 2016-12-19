@@ -11,7 +11,22 @@ void send_msg() {
 	gtk_text_buffer_insert_at_cursor(buffer_chat, msg, strlen(msg));
 	gtk_text_buffer_insert_at_cursor(buffer_chat, "\n", 1);
 
-	send_string(socket_fd, msg);
+	for (char *g = strtok(msg, "$"); g != NULL; g = strtok(NULL, "$")) {
+
+		Type type;
+
+		if (!strcmp(g, "!list")) {
+			type = TYPE__list;
+		} else if (!strcmp(g, "!dc")) {
+			type = TYPE__dc;
+		} else {
+			type = TYPE__text;
+		}
+
+		char **smsg = (char **)alloca(sizeof(char*));
+		smsg[0] = g;
+		send_buffer(socket_fd, smsg, 1, type);
+	}
 
 	gtk_text_buffer_delete(buffer_send, &start, &end);
 }
@@ -94,7 +109,9 @@ void connect_dialog_open() {
 			clean_buffer_chat();
 			socket_fd = clients->fd = init_connect((char *) gtk_entry_buffer_get_text(buffer_ip),
 					atoi(gtk_entry_buffer_get_text(buffer_port)));
-			send_string(socket_fd, login);
+			char **smsg = (char **)alloca(sizeof(char*));
+					smsg[0] = login;
+			send_buffer(socket_fd, smsg, 1, TYPE__text);
 			if (pthread_create(&listen_thread, NULL, listener, &id) != 0) {
 				perror("Creating the listener thread");
 			}

@@ -14,6 +14,7 @@
 
 char *ip_addr;
 int	port_num;
+unsigned int active_users = 0;
 
 pthread_mutex_t mutex;
 
@@ -41,7 +42,7 @@ int main(int argc, char* argv[]);
 
 void *server_session(void *arg);
 
-void message_handler(int id, char *msg, short int *revents);
+void message_handler(int id, char **msg, uint32_t count, Type type, short int *revents) ;
 void errproto_handler(int id, short int *revents);
 void dc_handler(int id);
 

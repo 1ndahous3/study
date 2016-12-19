@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <endian.h>
+#include "message.pb-c.h"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -31,17 +32,16 @@ typedef struct {
 
 extern client clients[];
 
-void message_handler(int id, char *msg, short int *revents);
+void message_handler(int id, char **msg, uint32_t count, Type type, short int *revents);
 void errproto_handler(int id, short int *revents);
 void dc_handler(int id);
 
-unsigned int crc32m(char *msg, size_t size);
-meta_info meta_from_msg(char *msg);
-bool check_meta_info(meta_info *pmsg, char *msg);
+unsigned int crc32m(uint8_t *buff, size_t size);
+meta_info meta_from_buffer(uint8_t *buff, size_t size);
+bool check_buffer_meta(meta_info *meta, uint8_t *buff);
 
-int send_string(int fd, char *msg);
-int send_message(int fd, char *msg);
-bool recv_message(struct pollfd *pfd, char *msg, size_t size);
+int send_buffer(int fd, char **msg, uint32_t count, Type type);
+bool recv_message(struct pollfd *pfd, uint8_t *msg, size_t size);
 
 void print_dc_reason(short int revents);
 void *listener(void *arg);

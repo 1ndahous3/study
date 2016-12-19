@@ -1,10 +1,10 @@
 #include "protocol.h"
 
-unsigned int crc32m(char *msg, size_t size) {
+unsigned int crc32m(uint8_t *buff, size_t size) {
 	unsigned int byte, crc, mask;
 	crc = 0xFFFFFFFF;
-	for (int i = 0; i < size && msg[i] != 0; i++) {
-		byte = msg[i];
+	for (int i = 0; i < size; i++) {
+		byte = buff[i];
 		crc ^= byte;
 		for (int j = 0; j < 7; j++) {
 			mask = -(crc & 1);
@@ -14,41 +14,46 @@ unsigned int crc32m(char *msg, size_t size) {
 	return ~crc;
 }
 
-meta_info meta_from_msg(char *msg) {
-	meta_info pmsg;
-	pmsg.length = htole32(strlen(msg) + 1);
-	pmsg.hash = htole32(crc32m(msg, pmsg.length));
-	return pmsg;
+meta_info meta_from_buffer(uint8_t *buff, size_t size) {
+	meta_info meta;
+	meta.length = htole32(size);
+	meta.hash = htole32(crc32m(buff, size));
+	return meta;
 }
 
-bool check_meta_info(meta_info *pmsg, char *msg) {
-	return pmsg->length == strlen(msg) + 1 ?
-			pmsg->hash == crc32m(msg, pmsg->length - 1) : false;
+bool check_buffer_meta(meta_info *meta, uint8_t *buff) {
+	return meta->hash == crc32m(buff, meta->length);
 }
 
-int send_string(int fd, char *msg) {
+int send_buffer(int fd, char **msg, uint32_t count, Type type) {
+	Message proto_msg = MESSAGE__INIT;
+	proto_msg.type = type;
+	if (type == TYPE__text || type == TYPE__list) {
+		proto_msg.data = msg;
+		proto_msg.n_data = count;
+	}
+
+	uint32_t msg_size = message__get_packed_size(&proto_msg);
+
+	printf("%d\n", msg_size);
+
+	void *buff = alloca(msg_size);
+	message__pack(&proto_msg, buff);
+
+	meta_info meta = meta_from_buffer(buff, msg_size);
+
+	for (size_t offset = 0; offset < sizeof(meta);) {
+		offset += send(fd, &meta + offset, sizeof(meta) - offset, 0);
+	}
+
 	int sent = 0;
-	for (char *g = strtok(msg, "$"); g != NULL; g = strtok(NULL, "$")) {
-		sent += send_message(fd, g);
+	for (size_t offset = 0; offset < msg_size; offset += sent) {
+		sent += send(fd, buff + offset, msg_size - sent, 0);
 	}
 	return sent;
 }
 
-int send_message(int fd, char *msg) {
-	meta_info pmsg = meta_from_msg(msg);
-	int sent = 0;
-	for (size_t offset = 0; offset < sizeof(pmsg); offset += sent) {
-		sent += send(fd, &pmsg + offset, sizeof(pmsg) - sent, 0);
-	}
-	sent = 0;
-	for (size_t offset = 0; offset < pmsg.length - 1; offset += sent) {
-		sent += send(fd, msg + offset, pmsg.length - 1 - sent, 0);
-	}
-	sent += send(fd, "$", 1, 0);
-	return sent;
-}
-
-bool recv_message(struct pollfd *pfd, char *msg, size_t size) {
+bool recv_message(struct pollfd *pfd, uint8_t *msg, size_t size) {
 	int recved = 0;
 	size_t offset = 0;
 
@@ -67,36 +72,38 @@ bool recv_message(struct pollfd *pfd, char *msg, size_t size) {
 			}
 		}
 	}
+
 }
 
 void *listener(void *arg) {
-	meta_info pmsg;
-
     int id = *(int *)arg;
 
 	struct pollfd pfd = { clients[id].fd, POLLIN, 0 };
 
 	while (pfd.revents == 0) {
+		meta_info meta;
 
-		if (!recv_message(&pfd, (char *) &pmsg, sizeof(meta_info))) {
+		if (!recv_message(&pfd, (uint8_t *) &meta, sizeof(meta_info))) {
 			continue;
 		}
-		pmsg.length = le32toh(pmsg.length);
-		pmsg.hash = le32toh(pmsg.hash);
 
-		char *msg = (char *) alloca(pmsg.length);
-		//printf("len = %lu\n", pmsg.length);
-		if (!recv_message(&pfd, msg, pmsg.length)) {
+		meta.length = le32toh(meta.length);
+		meta.hash = le32toh(meta.hash);
+
+		uint8_t *buff = (uint8_t *) alloca(meta.length);
+
+		if (!recv_message(&pfd, buff, meta.length)) {
 			continue;
 		}
-		msg[pmsg.length - 1] = '\0';
-		//printf("%s\n", msg);
+		Message *proto_msg = message__unpack(NULL, meta.length, buff);
 
-		if (check_meta_info(&pmsg, msg)) {
-			message_handler(id, msg, &pfd.revents);
+		if (check_buffer_meta(&meta, buff)) {
+			message_handler(id, proto_msg->data, proto_msg->n_data, proto_msg->type, &pfd.revents);
 		} else {
 			errproto_handler(id, &pfd.revents);
 		}
+
+		message__free_unpacked(proto_msg, NULL);
 	}
 
 	print_dc_reason(pfd.revents);
