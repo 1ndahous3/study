@@ -26,12 +26,12 @@ int init_connect(char* ip_addr, int port_num) {
 }
 
 void message_handler(int id, char **msg, uint32_t count, Type type, short int *revents) {
-	printf("%d\n", count);
 	if (type == TYPE__text) {
 		for (uint32_t i = 0; i < count; i++) {
 			gtk_text_buffer_insert_at_cursor(buffer_chat, msg[i],
 					strlen(msg[i]));
 		}
+		gtk_text_buffer_insert_at_cursor(buffer_chat, "\n", 1);
 	} else if (type == TYPE__list) {
 		for (uint32_t i = 0; i < count; i++) {
 			gtk_text_buffer_insert_at_cursor(buffer_chat, "[", 1);
@@ -39,6 +39,10 @@ void message_handler(int id, char **msg, uint32_t count, Type type, short int *r
 					strlen(msg[i]));
 			gtk_text_buffer_insert_at_cursor(buffer_chat, "]", 1);
 		}
+		gtk_text_buffer_insert_at_cursor(buffer_chat, "\n", 1);
+
+	} else if (type == TYPE__dc) {
+		dc_handler(id);
 	}
 }
 

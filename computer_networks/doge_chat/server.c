@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
 			printf("%s\n", login);
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (clients[i].isAlive && (strncmp(login, clients[i].nickName, strnlen(clients[i].nickName, LOGIN_LENGTH)) == 0)) {
-					kick_user(clients[i], "* Kicked by admin\n");
+					kick_user(&clients[i], "* Kicked by admin\n");
 					break;
 				}
 			}
@@ -97,10 +97,10 @@ void message_handler(int id, char **msg, uint32_t count, Type type, short int *r
 	case TYPE__text:
 		if (!clients[id].isLogin) {
 			if (strlen(msg[0]) == 0) {
-				kick_user(clients[id], recv_msg[LOGIN_INCORRECT]);
+				kick_user(&clients[id], recv_msg[LOGIN_INCORRECT]);
 				*revents |= POLLHUP;
 			} else if (!log_in(id, msg[0])) {
-				kick_user(clients[id], recv_msg[LOGIN_EXIST]);
+				kick_user(&clients[id], recv_msg[LOGIN_EXIST]);
 				*revents |= POLLHUP;
 			}
 			return;
@@ -110,7 +110,7 @@ void message_handler(int id, char **msg, uint32_t count, Type type, short int *r
 		send_client_list(id);
 		return;
 	case TYPE__dc:
-		kick_user(clients[id], "* disconnect");
+		kick_user(&clients[id], "* Disconnected");
 		*revents |= POLLHUP;
 		return;
 	default: break;
@@ -122,7 +122,7 @@ void message_handler(int id, char **msg, uint32_t count, Type type, short int *r
 }
 
 void errproto_handler(int id, short int *revents) {
-	kick_user(clients[id], recv_msg[ERR_PROTO]);
+	kick_user(&clients[id], recv_msg[ERR_PROTO]);
 	*revents |= POLLERR;
 }
 
@@ -156,8 +156,6 @@ void send_client_list(int id) {
 			smsg[j++] = clients[i].nickName;
 		}
 	}
-	printf("%d : %s\n", active_users, smsg[0]);
-
 	send_buffer(clients[id].fd, smsg, active_users, TYPE__list);
 	pthread_mutex_unlock(&mutex);
 }
@@ -173,7 +171,7 @@ bool log_in(int id, char *msg) {
 		smsg[1] = ", ";
 		smsg[2] = msg;
 		smsg[3] = "\n";
-		send_buffer(clients[id].fd, smsg, active_users, TYPE__text);
+		send_buffer(clients[id].fd, smsg, 4, TYPE__text);
 
 		return true;
 	}
@@ -189,25 +187,28 @@ bool check_login(char *msg) {
 	return true;
 }
 
-void disconnect_user(client client) {
+void disconnect_user(client *client) {
 	printf("* Client has been disconnected from the server");
-	if (strlen(client.nickName) != 0) {
-		printf(": %s", client.nickName);
+	if (strlen(client->nickName) != 0) {
+		printf(": %s", client->nickName);
 	}
 	printf(".\n");
-	client.isAlive = false;
-	client.isLogin = false;
+	client->isAlive = false;
+	client->isLogin = false;
 	active_users--;
-	if (client.fd) {
-		shutdown(client.fd, 1);
-		close(client.fd);
+	if (client->fd) {
+		shutdown(client->fd, 1);
+		close(client->fd);
 	}
 }
 
-void kick_user(client client, char *msg) {
-	if (client.isAlive) {
-		send(client.fd, recv_msg[KICKED], strlen(recv_msg[KICKED]), MSG_NOSIGNAL);
-		send(client.fd, msg, strlen(msg), MSG_NOSIGNAL);
+void kick_user(client *client, char *msg) {
+	if (client->isAlive) {
+		char **smsg = (char **) alloca(2 * sizeof(char*));
+		smsg[0] = recv_msg[KICKED];
+		smsg[1] = msg;
+		send_buffer(client->fd, smsg, 2, TYPE__text);
+		send_buffer(client->fd, NULL, 0, TYPE__dc);
 		disconnect_user(client);
 	}
 }

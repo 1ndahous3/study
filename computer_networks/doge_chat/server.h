@@ -52,5 +52,5 @@ void send_client_list(int id);
 bool log_in(int id, char *msg);
 bool check_login(char *msg);
 
-void disconnect_user(client client);
-void kick_user(client client, char *msg);
+void disconnect_user(client *client);
+void kick_user(client *client, char *msg);

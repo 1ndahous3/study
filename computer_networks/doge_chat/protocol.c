@@ -35,8 +35,6 @@ int send_buffer(int fd, char **msg, uint32_t count, Type type) {
 
 	uint32_t msg_size = message__get_packed_size(&proto_msg);
 
-	printf("%d\n", msg_size);
-
 	void *buff = alloca(msg_size);
 	message__pack(&proto_msg, buff);
 
