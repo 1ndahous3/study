@@ -15,55 +15,94 @@ PROTOBUF_C__BEGIN_DECLS
 #endif
 
 
-typedef struct _Message Message;
+typedef struct _ClientMessage ClientMessage;
+typedef struct _ServerMessage ServerMessage;
 
 
 /* --- enums --- */
 
 typedef enum _Type {
-  TYPE__list = 1,
-  TYPE__text = 2,
-  TYPE__dc = 3
+  TYPE__login = 1,
+  TYPE__list = 2,
+  TYPE__text = 3,
+  TYPE__dc = 4
     PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(TYPE)
 } Type;
 
 /* --- messages --- */
 
-struct  _Message
+struct  _ClientMessage
 {
   ProtobufCMessage base;
   Type type;
   size_t n_data;
   char **data;
+  char *login;
 };
-#define MESSAGE__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&message__descriptor) \
-    , TYPE__text, 0,NULL }
+#define CLIENT_MESSAGE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&client_message__descriptor) \
+    , TYPE__text, 0,NULL, NULL }
 
 
-/* Message methods */
-void   message__init
-                     (Message         *message);
-size_t message__get_packed_size
-                     (const Message   *message);
-size_t message__pack
-                     (const Message   *message,
+struct  _ServerMessage
+{
+  ProtobufCMessage base;
+  Type type;
+  size_t n_data;
+  char **data;
+  size_t n_userlist;
+  char **userlist;
+};
+#define SERVER_MESSAGE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&server_message__descriptor) \
+    , TYPE__text, 0,NULL, 0,NULL }
+
+
+/* ClientMessage methods */
+void   client_message__init
+                     (ClientMessage         *message);
+size_t client_message__get_packed_size
+                     (const ClientMessage   *message);
+size_t client_message__pack
+                     (const ClientMessage   *message,
                       uint8_t             *out);
-size_t message__pack_to_buffer
-                     (const Message   *message,
+size_t client_message__pack_to_buffer
+                     (const ClientMessage   *message,
                       ProtobufCBuffer     *buffer);
-Message *
-       message__unpack
+ClientMessage *
+       client_message__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   message__free_unpacked
-                     (Message *message,
+void   client_message__free_unpacked
+                     (ClientMessage *message,
+                      ProtobufCAllocator *allocator);
+/* ServerMessage methods */
+void   server_message__init
+                     (ServerMessage         *message);
+size_t server_message__get_packed_size
+                     (const ServerMessage   *message);
+size_t server_message__pack
+                     (const ServerMessage   *message,
+                      uint8_t             *out);
+size_t server_message__pack_to_buffer
+                     (const ServerMessage   *message,
+                      ProtobufCBuffer     *buffer);
+ServerMessage *
+       server_message__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   server_message__free_unpacked
+                     (ServerMessage *message,
                       ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
-typedef void (*Message_Closure)
-                 (const Message *message,
+typedef void (*ClientMessage_Closure)
+                 (const ClientMessage *message,
+                  void *closure_data);
+typedef void (*ServerMessage_Closure)
+                 (const ServerMessage *message,
                   void *closure_data);
 
 /* --- services --- */
@@ -72,7 +111,8 @@ typedef void (*Message_Closure)
 /* --- descriptors --- */
 
 extern const ProtobufCEnumDescriptor    type__descriptor;
-extern const ProtobufCMessageDescriptor message__descriptor;
+extern const ProtobufCMessageDescriptor client_message__descriptor;
+extern const ProtobufCMessageDescriptor server_message__descriptor;
 
 PROTOBUF_C__END_DECLS
 

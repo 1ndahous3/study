@@ -42,12 +42,13 @@ int main(int argc, char* argv[]);
 
 void *server_session(void *arg);
 
-void message_handler(int id, char **msg, uint32_t count, Type type, short int *revents) ;
+void message_handler(int id, uint8_t *buff, uint32_t length, short int *revents);
 void errproto_handler(int id, short int *revents);
 void dc_handler(int id);
 
 void broadcast(int id, char *msg);
 void send_client_list(int id);
+int send_message(int fd, char **msg, uint32_t count, Type type);
 
 bool log_in(int id, char *msg);
 bool check_login(char *msg);

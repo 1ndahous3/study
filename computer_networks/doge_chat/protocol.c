@@ -25,19 +25,7 @@ bool check_buffer_meta(meta_info *meta, uint8_t *buff) {
 	return meta->hash == crc32m(buff, meta->length);
 }
 
-int send_buffer(int fd, char **msg, uint32_t count, Type type) {
-	Message proto_msg = MESSAGE__INIT;
-	proto_msg.type = type;
-	if (type == TYPE__text || type == TYPE__list) {
-		proto_msg.data = msg;
-		proto_msg.n_data = count;
-	}
-
-	uint32_t msg_size = message__get_packed_size(&proto_msg);
-
-	void *buff = alloca(msg_size);
-	message__pack(&proto_msg, buff);
-
+int send_buffer(int fd, void *buff, uint32_t msg_size) {
 	meta_info meta = meta_from_buffer(buff, msg_size);
 
 	for (size_t offset = 0; offset < sizeof(meta);) {
@@ -93,15 +81,12 @@ void *listener(void *arg) {
 		if (!recv_message(&pfd, buff, meta.length)) {
 			continue;
 		}
-		Message *proto_msg = message__unpack(NULL, meta.length, buff);
 
 		if (check_buffer_meta(&meta, buff)) {
-			message_handler(id, proto_msg->data, proto_msg->n_data, proto_msg->type, &pfd.revents);
+			message_handler(id, buff, meta.length, /*proto_msg->data, proto_msg->n_data, proto_msg->type,*/ &pfd.revents);
 		} else {
 			errproto_handler(id, &pfd.revents);
 		}
-
-		message__free_unpacked(proto_msg, NULL);
 	}
 
 	print_dc_reason(pfd.revents);

@@ -91,7 +91,60 @@ void *server_session(void *arg) {
 	}
 }
 
-void message_handler(int id, char **msg, uint32_t count, Type type, short int *revents) {
+int send_message(int fd, char **msg, uint32_t count, Type type) {
+	ServerMessage proto_msg = SERVER_MESSAGE__INIT;
+	proto_msg.type = type;
+	switch(type) {
+	case TYPE__text:
+		proto_msg.data = msg;
+		proto_msg.n_data = count;
+		break;
+	case TYPE__list:
+		proto_msg.userlist = msg;
+		proto_msg.n_userlist = count;
+		break;
+	default: break;
+	}
+	uint32_t msg_size = server_message__get_packed_size(&proto_msg);
+	void *buff = alloca(msg_size);
+	server_message__pack(&proto_msg, buff);
+	return send_buffer(fd, buff, msg_size);
+}
+
+void message_handler(int id, uint8_t *buff, uint32_t length, short int *revents) {
+	ClientMessage *proto_msg = client_message__unpack(NULL, length, buff);
+	switch (proto_msg->type) {
+	case TYPE__login:
+		if (!clients[id].isLogin) {
+			printf("login: %s\n", proto_msg->login);
+			if (strlen(proto_msg->login) == 0) {
+				kick_user(&clients[id], recv_msg[LOGIN_INCORRECT]);
+				*revents |= POLLHUP;
+			} else if (!log_in(id, proto_msg->login)) {
+				kick_user(&clients[id], recv_msg[LOGIN_EXIST]);
+				*revents |= POLLHUP;
+			}
+		}
+		break;
+	case TYPE__list:
+		send_client_list(id);
+		break;
+	case TYPE__dc:
+		kick_user(&clients[id], "* Disconnected");
+		*revents |= POLLHUP;
+		break;
+	case TYPE__text:
+		for (uint32_t i = 0; i < proto_msg->n_data; i++) {
+			printf("%s: %s\n", clients[id].nickName, proto_msg->data[i]);
+			broadcast(id, proto_msg->data[i]);
+		}
+		break;
+	default: break;
+	}
+
+	client_message__free_unpacked(proto_msg, NULL);
+}
+/*void message_handler(int id, char **msg, uint32_t count, Type type, short int *revents) {
 	switch (type)
 	{
 	case TYPE__text:
@@ -115,11 +168,8 @@ void message_handler(int id, char **msg, uint32_t count, Type type, short int *r
 		return;
 	default: break;
 	}
-	for (uint32_t i = 0; i < count; i++) {
-		printf("%s: %s\n", clients[id].nickName, msg[i]);
-		broadcast(id, msg[i]);
-	}
-}
+
+}*/
 
 void errproto_handler(int id, short int *revents) {
 	kick_user(&clients[id], recv_msg[ERR_PROTO]);
@@ -141,7 +191,7 @@ void broadcast(int id, char *msg) {
 			smsg[2] = msg;
 			smsg[3] = "\n";
 
-			send_buffer(clients[i].fd, smsg, 4, TYPE__text);
+			send_message(clients[i].fd, smsg, 4, TYPE__text);
 		}
 	}
 	pthread_mutex_unlock(&mutex);
@@ -156,7 +206,7 @@ void send_client_list(int id) {
 			smsg[j++] = clients[i].nickName;
 		}
 	}
-	send_buffer(clients[id].fd, smsg, active_users, TYPE__list);
+	send_message(clients[id].fd, smsg, active_users, TYPE__list);
 	pthread_mutex_unlock(&mutex);
 }
 
@@ -171,7 +221,7 @@ bool log_in(int id, char *msg) {
 		smsg[1] = ", ";
 		smsg[2] = msg;
 		smsg[3] = "\n";
-		send_buffer(clients[id].fd, smsg, 4, TYPE__text);
+		send_message(clients[id].fd, smsg, 4, TYPE__text);
 
 		return true;
 	}
@@ -186,6 +236,8 @@ bool check_login(char *msg) {
 	}
 	return true;
 }
+
+
 
 void disconnect_user(client *client) {
 	printf("* Client has been disconnected from the server");
@@ -207,8 +259,8 @@ void kick_user(client *client, char *msg) {
 		char **smsg = (char **) alloca(2 * sizeof(char*));
 		smsg[0] = recv_msg[KICKED];
 		smsg[1] = msg;
-		send_buffer(client->fd, smsg, 2, TYPE__text);
-		send_buffer(client->fd, NULL, 0, TYPE__dc);
+		send_message(client->fd, smsg, 2, TYPE__text);
+		send_message(client->fd, NULL, 0, TYPE__dc);
 		disconnect_user(client);
 	}
 }

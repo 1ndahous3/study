@@ -7,51 +7,94 @@
 #endif
 
 #include "message.pb-c.h"
-void   message__init
-                     (Message         *message)
+void   client_message__init
+                     (ClientMessage         *message)
 {
-  static Message init_value = MESSAGE__INIT;
+  static ClientMessage init_value = CLIENT_MESSAGE__INIT;
   *message = init_value;
 }
-size_t message__get_packed_size
-                     (const Message *message)
+size_t client_message__get_packed_size
+                     (const ClientMessage *message)
 {
-  assert(message->base.descriptor == &message__descriptor);
+  assert(message->base.descriptor == &client_message__descriptor);
   return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
 }
-size_t message__pack
-                     (const Message *message,
+size_t client_message__pack
+                     (const ClientMessage *message,
                       uint8_t       *out)
 {
-  assert(message->base.descriptor == &message__descriptor);
+  assert(message->base.descriptor == &client_message__descriptor);
   return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
 }
-size_t message__pack_to_buffer
-                     (const Message *message,
+size_t client_message__pack_to_buffer
+                     (const ClientMessage *message,
                       ProtobufCBuffer *buffer)
 {
-  assert(message->base.descriptor == &message__descriptor);
+  assert(message->base.descriptor == &client_message__descriptor);
   return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
 }
-Message *
-       message__unpack
+ClientMessage *
+       client_message__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data)
 {
-  return (Message *)
-     protobuf_c_message_unpack (&message__descriptor,
+  return (ClientMessage *)
+     protobuf_c_message_unpack (&client_message__descriptor,
                                 allocator, len, data);
 }
-void   message__free_unpacked
-                     (Message *message,
+void   client_message__free_unpacked
+                     (ClientMessage *message,
                       ProtobufCAllocator *allocator)
 {
-  assert(message->base.descriptor == &message__descriptor);
+  assert(message->base.descriptor == &client_message__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-static const Type message__type__default_value = TYPE__text;
-static const ProtobufCFieldDescriptor message__field_descriptors[2] =
+void   server_message__init
+                     (ServerMessage         *message)
+{
+  static ServerMessage init_value = SERVER_MESSAGE__INIT;
+  *message = init_value;
+}
+size_t server_message__get_packed_size
+                     (const ServerMessage *message)
+{
+  assert(message->base.descriptor == &server_message__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t server_message__pack
+                     (const ServerMessage *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &server_message__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t server_message__pack_to_buffer
+                     (const ServerMessage *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &server_message__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+ServerMessage *
+       server_message__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (ServerMessage *)
+     protobuf_c_message_unpack (&server_message__descriptor,
+                                allocator, len, data);
+}
+void   server_message__free_unpacked
+                     (ServerMessage *message,
+                      ProtobufCAllocator *allocator)
+{
+  assert(message->base.descriptor == &server_message__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+static const Type client_message__type__default_value = TYPE__text;
+static const ProtobufCFieldDescriptor client_message__field_descriptors[3] =
 {
   {
     "type",
@@ -59,9 +102,9 @@ static const ProtobufCFieldDescriptor message__field_descriptors[2] =
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_ENUM,
     0,   /* quantifier_offset */
-    offsetof(Message, type),
+    offsetof(ClientMessage, type),
     &type__descriptor,
-    &message__type__default_value,
+    &client_message__type__default_value,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
@@ -70,52 +113,132 @@ static const ProtobufCFieldDescriptor message__field_descriptors[2] =
     2,
     PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_STRING,
-    offsetof(Message, n_data),
-    offsetof(Message, data),
+    offsetof(ClientMessage, n_data),
+    offsetof(ClientMessage, data),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "login",
+    3,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(ClientMessage, login),
     NULL,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
 };
-static const unsigned message__field_indices_by_name[] = {
+static const unsigned client_message__field_indices_by_name[] = {
   1,   /* field[1] = data */
+  2,   /* field[2] = login */
   0,   /* field[0] = type */
 };
-static const ProtobufCIntRange message__number_ranges[1 + 1] =
+static const ProtobufCIntRange client_message__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 3 }
 };
-const ProtobufCMessageDescriptor message__descriptor =
+const ProtobufCMessageDescriptor client_message__descriptor =
 {
   PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "Message",
-  "Message",
-  "Message",
+  "ClientMessage",
+  "ClientMessage",
+  "ClientMessage",
   "",
-  sizeof(Message),
-  2,
-  message__field_descriptors,
-  message__field_indices_by_name,
-  1,  message__number_ranges,
-  (ProtobufCMessageInit) message__init,
+  sizeof(ClientMessage),
+  3,
+  client_message__field_descriptors,
+  client_message__field_indices_by_name,
+  1,  client_message__number_ranges,
+  (ProtobufCMessageInit) client_message__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCEnumValue type__enum_values_by_number[3] =
+static const Type server_message__type__default_value = TYPE__text;
+static const ProtobufCFieldDescriptor server_message__field_descriptors[3] =
 {
-  { "list", "TYPE__list", 1 },
-  { "text", "TYPE__text", 2 },
-  { "dc", "TYPE__dc", 3 },
+  {
+    "type",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_ENUM,
+    0,   /* quantifier_offset */
+    offsetof(ServerMessage, type),
+    &type__descriptor,
+    &server_message__type__default_value,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "data",
+    2,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_STRING,
+    offsetof(ServerMessage, n_data),
+    offsetof(ServerMessage, data),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "userlist",
+    3,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_STRING,
+    offsetof(ServerMessage, n_userlist),
+    offsetof(ServerMessage, userlist),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned server_message__field_indices_by_name[] = {
+  1,   /* field[1] = data */
+  0,   /* field[0] = type */
+  2,   /* field[2] = userlist */
+};
+static const ProtobufCIntRange server_message__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 3 }
+};
+const ProtobufCMessageDescriptor server_message__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "ServerMessage",
+  "ServerMessage",
+  "ServerMessage",
+  "",
+  sizeof(ServerMessage),
+  3,
+  server_message__field_descriptors,
+  server_message__field_indices_by_name,
+  1,  server_message__number_ranges,
+  (ProtobufCMessageInit) server_message__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCEnumValue type__enum_values_by_number[4] =
+{
+  { "login", "TYPE__login", 1 },
+  { "list", "TYPE__list", 2 },
+  { "text", "TYPE__text", 3 },
+  { "dc", "TYPE__dc", 4 },
 };
 static const ProtobufCIntRange type__value_ranges[] = {
-{1, 0},{0, 3}
+{1, 0},{0, 4}
 };
-static const ProtobufCEnumValueIndex type__enum_values_by_name[3] =
+static const ProtobufCEnumValueIndex type__enum_values_by_name[4] =
 {
-  { "dc", 2 },
-  { "list", 0 },
-  { "text", 1 },
+  { "dc", 3 },
+  { "list", 1 },
+  { "login", 0 },
+  { "text", 2 },
 };
 const ProtobufCEnumDescriptor type__descriptor =
 {
@@ -124,9 +247,9 @@ const ProtobufCEnumDescriptor type__descriptor =
   "Type",
   "Type",
   "",
-  3,
+  4,
   type__enum_values_by_number,
-  3,
+  4,
   type__enum_values_by_name,
   1,
   type__value_ranges,

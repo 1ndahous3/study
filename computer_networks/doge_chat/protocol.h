@@ -32,7 +32,7 @@ typedef struct {
 
 extern client clients[];
 
-void message_handler(int id, char **msg, uint32_t count, Type type, short int *revents);
+void message_handler(int id, uint8_t *buff, uint32_t length, short int *revents);
 void errproto_handler(int id, short int *revents);
 void dc_handler(int id);
 
@@ -40,7 +40,7 @@ unsigned int crc32m(uint8_t *buff, size_t size);
 meta_info meta_from_buffer(uint8_t *buff, size_t size);
 bool check_buffer_meta(meta_info *meta, uint8_t *buff);
 
-int send_buffer(int fd, char **msg, uint32_t count, Type type);
+int send_buffer(int fd, void *buff, uint32_t msg_size);
 bool recv_message(struct pollfd *pfd, uint8_t *msg, size_t size);
 
 void print_dc_reason(short int revents);
