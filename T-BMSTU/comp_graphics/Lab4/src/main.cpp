@@ -15,77 +15,92 @@
 #include "point.hpp"
 
 int width = 800, height = 600;
+
+int blur_rate = 2, blur_rate_sq = 2 << blur_rate - 1;
+
 Shape shape;
 
 bool wait_vertex = true;
 bool wait_fill = false;
 
 void framebuffer_resize_callback(GLFWwindow *window, int w, int h) {
-	width = w, height = h;
-	glViewport(0, 0, w, h);
-	shape.resize();
+    width = w, height = h;
+    glViewport(0, 0, w, h);
+    shape.resize();
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action,
-		int mods) {
-	if (action == GLFW_PRESS) {
-		switch (key) {
-		case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(window, GL_TRUE); break;
-			// translate
-		case GLFW_KEY_P: wait_vertex = true; break;
-		case GLFW_KEY_F: wait_fill = true; wait_vertex = false; break;
-		//case GLFW_KEY_O: break;
-		}
-	}
+        int mods) {
+    if (action == GLFW_PRESS) {
+        switch (key) {
+        case GLFW_KEY_ESCAPE:
+            glfwSetWindowShouldClose(window, GL_TRUE);
+            break;
+            // translate
+        case GLFW_KEY_P:
+            wait_vertex = true;
+            break;
+        case GLFW_KEY_F:
+            wait_fill = true;
+            wait_vertex = false;
+            break;
+            //case GLFW_KEY_O: break;
+        }
+    }
 }
 
 void mouse_callback(GLFWwindow* window, int button, int action, int mods) {
-	double x, y;
-	if (action == GLFW_PRESS) {
-		glfwGetCursorPos(window, &x, &y);
-		if (wait_fill) {
-			shape.fillShape((int) x, (int) (height - y));
-		}
-		if (wait_vertex) {
-			shape.addPoint((int) x, (int) (height - y));
-		}
-	}
+    double x, y;
+    if (action == GLFW_PRESS) {
+        glfwGetCursorPos(window, &x, &y);
+        if (wait_fill) {
+            shape.fillShape((int) x, (int) (height - y));
+        }
+        if (wait_vertex) {
+            shape.addPoint((int) x, (int) (height - y));
+        }
+    }
 }
 
-int main(void) {
-	GLFWwindow* window;
-	if (!glfwInit())
-		return -1;
+int main() {
+    
+    GLFWwindow* window;
+    
+    if (!glfwInit())
+        return -1;
 
+    window = glfwCreateWindow(width, height, "Lab 4", NULL, NULL);
 
-	window = glfwCreateWindow(width, height, "Lab 4", NULL, NULL);
+    if (!window) {
+        glfwTerminate();
+        return -1;
+    }
+    //glewExperimental=GL_TRUE;
 
-	if (!window) {
-		glfwTerminate();
-		return -1;
-	}
-	//glewExperimental=GL_TRUE;
+    glfwMakeContextCurrent(window);
+    glfwSetKeyCallback(window, key_callback);
+    glfwSetMouseButtonCallback(window, mouse_callback);
+    glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
+    glewInit();
 
-	glfwMakeContextCurrent(window);
-	glfwSetKeyCallback(window, key_callback);
-	glfwSetMouseButtonCallback(window, mouse_callback);
-	glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
-	glewInit();
+    glEnable (GL_DEPTH_TEST);
+    glDepthFunc (GL_LESS);
+    glViewport(0, 0, width, height);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-	glViewport(0, 0, width, height);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    while (!glfwWindowShouldClose(window)) {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//        shape.render();
+//        shape.buffer() 
+        glAccum(GL_RETURN, 0.7);
+        
+        glDrawBuffer (GL_BACK);
+        
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
 
-	while (!glfwWindowShouldClose(window)) {
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		shape.render();
-
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
-
-	glfwDestroyWindow(window);
-	glfwTerminate();
-	return 0;
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
 }
