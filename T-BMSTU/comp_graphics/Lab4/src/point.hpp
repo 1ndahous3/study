@@ -6,7 +6,6 @@
 #include <vector>
 #include <stack>
 #include <stdio.h>
-#include <unistd.h>
 
 #include <string.h>
 
@@ -213,7 +212,6 @@ public:
         points.emplace_back(x, y);
 
         if (points.size() > 1) {
-//            calculateVert();
             buffer();
         }
     }
@@ -222,43 +220,19 @@ public:
 
         points.clear();
     }
-    /*
-     void calculateVert() {
-     
-     glClear(GL_ACCUM_BUFFER_BIT);
-
-     memset(mtrx, 0, width * height * 3);
-
-     points.push_back(points.front());
-
-     //        std::cout << points.size() << std::endl;
-
-     for (unsigned int i = 0; i < points.size() - 1; i++) {
-
-     Line line(points[i], points[i + 1]);
-     line.calculateVert();
-
-     for (const auto &foo : line.getPoints()) {
-     if (foo.y < height && foo.x < width) {
-     mtrx[foo.y * width * 3 + foo.x * 3] = 255;
-     mtrx[foo.y * width * 3 + foo.x * 3 + 1] = 255;
-     mtrx[foo.y * width * 3 + foo.x * 3 + 2] = 255;
-     }
-     }
-     }
-
-     points.erase(points.end() - 1);
-     }*/
+    
     void buffer() {
         memset(mtrx, 0, width * height * 3);
-
-        glClear (GL_ACCUM_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_ACCUM_BUFFER_BIT);
 
         int n_curr = blur_rate_sq;
 
         while (n_curr > 0) {
 
             std::cout << n_curr << std::endl;
+
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
             for (unsigned int i = 0; i < points.size() - 1; i++) {
 
                 Line line(points[i], points[i + 1]);
@@ -268,35 +242,37 @@ public:
                     if (foo.y < height && foo.x < width) {
 
                         bufferVert(foo, n_curr);
-
-                        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                        glDrawPixels(width, height, GL_RGB, GL_UNSIGNED_BYTE,
-                                mtrx);
-                        glAccum(GL_ACCUM, 1.0f / blur_rate_sq);
-
                     }
                 }
 
             }
 
+            glDrawPixels(width, height, GL_RGB, GL_UNSIGNED_BYTE, mtrx);
+            glAccum(GL_ACCUM, (1.0f / (float) blur_rate_sq));
+
             n_curr--;
         }
-
         
-        //glDrawBuffer (GL_FRONT);
+        // glClear(GL_COLOR_BUFFER_BIT);
     }
 
     void bufferVert(const Point &point, int n) {
 
-        int d = blur_rate_sq - n / blur_rate;
+//        std::cout << "- Point: " << point.x << ' ' << point.y << std::endl;
+//        std::cout << "- n: " << n << std::endl;
+        int d = (blur_rate_sq - n) / blur_rate;
+//        std::cout << "d = " << d << std::endl;
 
         for (int i = point.x - d; i < point.x + d; i++) {
             for (int j = point.y - d; j < point.y + d; j++) {
                 int foo = blur_rate - std::abs(point.x - i);
                 int bar = blur_rate - std::abs(point.y - j);
 
+//                std::cout << "x_rev = " << foo << ", y_rev = " << bar
+//                        << std::endl;
+
                 if (foo * bar >= n) {
-                    std::cout << "Paint:" << i << ' ' << j << std::endl;
+//                    std::cout << "Paint:" << i << ' ' << j << std::endl;
                     mtrx[j * width * 3 + i * 3] = 255;
                     mtrx[j * width * 3 + i * 3 + 1] = 255;
                     mtrx[j * width * 3 + i * 3 + 2] = 255;
@@ -364,7 +340,6 @@ public:
             Point p(st.top());
             st.pop();
 
-//            std::cout << "point: " << p.x << ' ' << p.y << std::endl;
             fill(p);
 
             Point p_cur(p);

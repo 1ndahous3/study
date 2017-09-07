@@ -15,8 +15,7 @@
 #include "point.hpp"
 
 int width = 800, height = 600;
-
-int blur_rate = 2, blur_rate_sq = 2 << blur_rate - 1;
+int blur_rate = 4, blur_rate_sq = 2 << (blur_rate - 1);
 
 Shape shape;
 
@@ -63,9 +62,9 @@ void mouse_callback(GLFWwindow* window, int button, int action, int mods) {
 }
 
 int main() {
-    
+
     GLFWwindow* window;
-    
+
     if (!glfwInit())
         return -1;
 
@@ -75,8 +74,7 @@ int main() {
         glfwTerminate();
         return -1;
     }
-    //glewExperimental=GL_TRUE;
-
+    
     glfwMakeContextCurrent(window);
     glfwSetKeyCallback(window, key_callback);
     glfwSetMouseButtonCallback(window, mouse_callback);
@@ -84,20 +82,19 @@ int main() {
     glewInit();
 
     glEnable (GL_DEPTH_TEST);
+    glEnable (GL_ACCUM);
+    glReadBuffer(GL_BACK);
+    glDrawBuffer(GL_BACK);
+    
     glDepthFunc (GL_LESS);
     glViewport(0, 0, width, height);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     while (!glfwWindowShouldClose(window)) {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//        shape.render();
-//        shape.buffer() 
-        glAccum(GL_RETURN, 0.7);
-        
-        glDrawBuffer (GL_BACK);
-        
-        glfwSwapBuffers(window);
         glfwPollEvents();
+
+        glAccum(GL_RETURN, 1);
+        glfwSwapBuffers(window);
     }
 
     glfwDestroyWindow(window);
