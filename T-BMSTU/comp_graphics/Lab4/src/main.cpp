@@ -1,10 +1,3 @@
-/*
- * main.cpp
- *
- *  Created on: Jun 4, 2017
- *      Author: roman
- */
-
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -15,7 +8,7 @@
 #include "point.hpp"
 
 int width = 800, height = 600;
-int blur_rate = 4, blur_rate_sq = 2 << (blur_rate - 1);
+int blur_rate = 5, blur_rate_sq = 2 << (blur_rate - 1);
 
 Shape shape;
 
@@ -65,6 +58,8 @@ int main() {
 
     GLFWwindow* window;
 
+    glewExperimental = GL_TRUE;
+    
     if (!glfwInit())
         return -1;
 
@@ -76,15 +71,19 @@ int main() {
     }
     
     glfwMakeContextCurrent(window);
+    
+    
     glfwSetKeyCallback(window, key_callback);
     glfwSetMouseButtonCallback(window, mouse_callback);
     glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
     glewInit();
 
-    glEnable (GL_DEPTH_TEST);
-    glEnable (GL_ACCUM);
+    glDisable (GL_DEPTH_TEST);
+   // glEnable (GL_ACCUM);
     glReadBuffer(GL_BACK);
     glDrawBuffer(GL_BACK);
+    
+    glShadeModel(GL_SMOOTH);
     
     glDepthFunc (GL_LESS);
     glViewport(0, 0, width, height);
@@ -93,7 +92,7 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
-        glAccum(GL_RETURN, 1);
+        glDrawPixels(width, height, GL_RGB, GL_UNSIGNED_BYTE, mtrx);
         glfwSwapBuffers(window);
     }
 

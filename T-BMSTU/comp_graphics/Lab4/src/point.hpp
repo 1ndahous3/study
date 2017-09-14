@@ -178,12 +178,14 @@ protected:
 public:
     std::vector<Point> points;
     std::vector<float> verts;
-    GLubyte *mtrx;
+    GLubyte *mtrx, *accum_buff;
 
     Shape() :
             width(::width), height(::height) {
 
         mtrx = (GLubyte *) calloc(width * height * 3, sizeof(GLubyte));
+        accum_buff = (GLubyte *) calloc(width * height * 3, sizeof(GLubyte));
+
     }
 
     void resize() {
@@ -204,6 +206,11 @@ public:
             std::swap(mtrx, mtrx_tmp);
 
             free(mtrx_tmp);
+
+            free(accum_buff);
+
+            accum_buff = (GLubyte *) calloc(::width * ::height * 3,
+                    sizeof(GLubyte));
         }
     }
 
@@ -220,18 +227,23 @@ public:
 
         points.clear();
     }
-    
+
     void buffer() {
+
         memset(mtrx, 0, width * height * 3);
+        memset(accum_buff, 0, width * height * 3);
+
         glClear(GL_COLOR_BUFFER_BIT | GL_ACCUM_BUFFER_BIT);
 
         int n_curr = blur_rate_sq;
+
+        points.push_back(points.front());
 
         while (n_curr > 0) {
 
             std::cout << n_curr << std::endl;
 
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            //glClear(GL_COLOR_BUFFER_BIT);
 
             for (unsigned int i = 0; i < points.size() - 1; i++) {
 
@@ -247,35 +259,54 @@ public:
 
             }
 
+            for (int i = 0; i < width; i++) {
+                for (int j = 0; j < height; j++) {
+                    mtrx[j * width * 3 + i * 3] += (accum_buff[j * width * 3
+                            + i * 3] / (float) blur_rate_sq);
+
+                    mtrx[j * width * 3 + i * 3 + 1] += (accum_buff[j * width * 3
+                            + i * 3 + 1] / (float) blur_rate_sq);
+
+                    mtrx[j * width * 3 + i * 3 + 2] += (accum_buff[j * width * 3
+                            + i * 3 + 2] / (float) blur_rate_sq);
+
+                }
+            }
+
             glDrawPixels(width, height, GL_RGB, GL_UNSIGNED_BYTE, mtrx);
-            glAccum(GL_ACCUM, (1.0f / (float) blur_rate_sq));
+
+//            std::cout << glGetError() << std::endl;
+//            glDrawPixels(width, height, GL_RGB, GL_UNSIGNED_BYTE, mtrx);
+//            glAccum(GL_ACCUM, (1.0f / (float) blur_rate_sq));
+//            std::cout << glGetError() << std::endl;
 
             n_curr--;
         }
-        
-        // glClear(GL_COLOR_BUFFER_BIT);
+        points.erase(points.end() - 1);
+
+        glDrawPixels(width, height, GL_RGB, GL_UNSIGNED_BYTE, mtrx);
     }
 
     void bufferVert(const Point &point, int n) {
 
-//        std::cout << "- Point: " << point.x << ' ' << point.y << std::endl;
-//        std::cout << "- n: " << n << std::endl;
+        std::cout << "- Point: " << point.x << ' ' << point.y << std::endl;
+        std::cout << "- n: " << n << std::endl;
         int d = (blur_rate_sq - n) / blur_rate;
-//        std::cout << "d = " << d << std::endl;
+        std::cout << "d = " << d << std::endl;
 
-        for (int i = point.x - d; i < point.x + d; i++) {
-            for (int j = point.y - d; j < point.y + d; j++) {
+        for (int i = point.x - d; i <= point.x + d; i++) {
+            for (int j = point.y - d; j <= point.y + d; j++) {
                 int foo = blur_rate - std::abs(point.x - i);
                 int bar = blur_rate - std::abs(point.y - j);
 
-//                std::cout << "x_rev = " << foo << ", y_rev = " << bar
-//                        << std::endl;
+                std::cout << "x_rev = " << foo << ", y_rev = " << bar
+                        << std::endl;
 
                 if (foo * bar >= n) {
-//                    std::cout << "Paint:" << i << ' ' << j << std::endl;
-                    mtrx[j * width * 3 + i * 3] = 255;
-                    mtrx[j * width * 3 + i * 3 + 1] = 255;
-                    mtrx[j * width * 3 + i * 3 + 2] = 255;
+                    std::cout << "Paint:" << i << ' ' << j << std::endl;
+                    accum_buff[j * width * 3 + i * 3] = 255;
+                    accum_buff[j * width * 3 + i * 3 + 1] = 255;
+                    accum_buff[j * width * 3 + i * 3 + 2] = 255;
                 }
             }
         }
