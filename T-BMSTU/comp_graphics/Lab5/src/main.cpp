@@ -99,7 +99,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action,
         case GLFW_KEY_P:
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             break;
-        case GLFW_KEY_N:
+        case GLFW_KEY_C:
             need_clip = !need_clip;
             break;
 //            fragmentation
@@ -132,7 +132,7 @@ int main(void) {
     if (!glfwInit())
         return -1;
 
-    window = glfwCreateWindow(width, height, "Lab3", NULL, NULL);
+    window = glfwCreateWindow(width, height, "Lab5", NULL, NULL);
 
     if (!window) {
         glfwTerminate();
@@ -149,16 +149,15 @@ int main(void) {
     glDepthFunc(GL_LESS);
     glViewport(0, 0, width, height);
 
-//    Cylinder cylinder;
+    std::vector<Line3D> lines, lines_clipped;
     Cube cube(2);
-//    Line3D line0, line1, line2, line3, line4, line5, line6, line7, line8, line9;
-    Line3D line0(Point{21, 100, -61}, Point{61, -88, 44});
-//    cylinder.calculateVert();
     cube.calculateVert();
 
-    //line = line.clip(cube);
-    //line2 = line2.clip(cube);
-    //line3 = line3.clip(cube);
+    for (int i = 0; i < 30; i++) {
+        Line3D line;
+        lines.push_back(line);
+        lines_clipped.push_back(line.clip(cube));
+    }
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -166,46 +165,15 @@ int main(void) {
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         glTranslated(-1.0f, -0.45f, 0.0f);
-//        glScalef(0.1f, 0.1f, 0.1f);
-//
-//        glColor3f(0.0f, 1.0f, 0.0f);
-//        cube.render();
 
         modelview();
-//        glScalef(0.5f, 0.5f, 0.5f);
-//        if (sectors != cylinder.sectors || sections != cylinder.sections) {
-//            cylinder.changeFragm(sectors, sections);
-//            cylinder.calculateVert();
-//        }
         glColor3f(0.0f, 1.0f, 0.0f);
-        //cylinder.render();
         cube.render();
 
         glColor3f(1.0f, 0.0f, 0.0f);
-        if (need_clip) {
-            line0.clip(cube).render();
-//            line1.clip(cube).render();
-//            line2.clip(cube).render();
-//            line3.clip(cube).render();
-//            line0.clip(cube).render();
-//            line4.clip(cube).render();
-//            line5.clip(cube).render();
-//            line6.clip(cube).render();
-//            line4.clip(cube).render();
-//            line7.clip(cube).render();
-//            line8.clip(cube).render();
-//            line9.clip(cube).render();
-        } else {
-            line0.render();
-//            line1.render();
-//            line2.render();
-//            line3.render();
-//            line4.render();
-//            line5.render();
-//            line6.render();
-//            line7.render();
-//            line8.render();
-//            line9.render();
+
+        for (const auto &line : (need_clip ? lines_clipped : lines)) {
+            line.render();
         }
 
         glfwSwapBuffers(window);
