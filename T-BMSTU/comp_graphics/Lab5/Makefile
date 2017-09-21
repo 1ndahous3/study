@@ -3,7 +3,12 @@ SRC=src/main.cpp
 CFLAGS=-g -lGL -lGLEW -lglfw -Wall -o
 CC=g++
 
-default: $(SRC)
+default: build run
+
+run:
+	./$(NAME)
+
+build: $(SRC)
 	$(CC) $(CFLAGS) $(NAME) $(SRC)
 
 clean:
