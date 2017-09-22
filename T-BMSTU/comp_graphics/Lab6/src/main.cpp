@@ -30,6 +30,7 @@ GLfloat f = 0.5;
 GLfloat fi = asin(f / sqrt(2)) * 180 / M_PI;
 GLfloat ro = asin(f / sqrt(2 - f * f)) * 180 / M_PI;
 
+
 void randomColor() {
 	glColor3ub(rand() % 256, rand() % 256, rand() % 256);
 }
@@ -87,20 +88,34 @@ void modelview() {
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glTranslatef(x_t, y_t, 0.0f);
-	glRotatef(r_xy, 0.0f, 0.0f, 1.0f);
-	glRotatef(r_yz, 1.0f, 0.0f, 0.0f);
-	glRotatef(r_xz, 0.0f, 1.0f, 0.0f);
-	glScalef(k, k, k);
 
-	GLfloat light_position[4];
-			
-	light_position[0] = cos((r_xz / 180) * M_PI) * cos((r_xy / 180) * M_PI);
-	light_position[1] = -sin((r_xy / 180) * M_PI) * cos((r_yz / 180) * M_PI);
-	light_position[2] = cos((r_yz / 180) * M_PI) * sin((r_xz / 180) * M_PI);
-	light_position[3] = 0.0f;
 
-	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	// glTranslatef(x_t, y_t, 0.0f);
+	// glRotatef(r_xy, 0.0f, 0.0f, 1.0f);
+	// glRotatef(r_yz, 1.0f, 0.0f, 0.0f);
+	// glRotatef(r_xz, 0.0f, 1.0f, 0.0f);
+	// glScalef(k, k, k);
+
+
+	glm::mat4 model_mtrx;
+	glm::mat4 rotate_mtrx;
+	glm::mat4 light_mtrx;
+
+	model_mtrx = glm::translate(model_mtrx, glm::vec3(x_t, y_t, 0.0f));
+
+	rotate_mtrx = glm::rotate(rotate_mtrx, glm::radians(r_xy), glm::vec3(0.0f, 0.0f, 1.0f));
+	rotate_mtrx = glm::rotate(rotate_mtrx, glm::radians(r_yz), glm::vec3(1.0f, 0.0f, 0.0f));
+	rotate_mtrx = glm::rotate(rotate_mtrx, glm::radians(r_xz), glm::vec3(0.0f, 1.0f, 0.0f));
+
+	model_mtrx = model_mtrx * rotate_mtrx;
+
+	model_mtrx = glm::scale(model_mtrx, glm::vec3(0.7f));
+
+	glMultMatrixf(glm::value_ptr(model_mtrx));
+
+	light_mtrx = glm::inverse(model_mtrx) * light_mtrx;
+
+	glLightfv(GL_LIGHT0, GL_POSITION, glm::value_ptr(light_mtrx));
 }
 
 void projection() {
@@ -173,20 +188,24 @@ int main(void) {
 	glewInit();
 
 	glEnable(GL_DEPTH_TEST);
+	
+
 	glDepthFunc(GL_LESS);
 	glViewport(0, 0, width, height);
 
-	 GLfloat material_diffuse[] = {0.5, 0.5, 0.5, 1.0};
+	 glEnable(GL_AUTO_NORMAL);
+	 glEnable(GL_LIGHTING);
+	 glEnable(GL_LIGHT0);
 
-    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_diffuse);
-
-    glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-    //glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
-
+GLfloat ambientLight[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+GLfloat diffuseLight[] = { 0.8f, 0.8f, 0.8, 1.0f };
+GLfloat specularLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
 GLfloat light1_position[] = {0.0, 0.0, 1.0, 1.0};
-    glLightfv(GL_LIGHT0, GL_POSITION, light1_position);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
+
+glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
+glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+glLightfv(GL_LIGHT0, GL_POSITION, light1_position);
 	
 	Cylinder cylinder;
 	Cube cube;
