@@ -4,11 +4,51 @@
 #include <iostream>
 #include <vector>
 
+struct Point {
+
+    int x = 0;
+    int y = 0;
+
+    Point() {}
+
+    Point(int x, int y) :
+            x(x), y(y) {
+    }
+};
+
+struct Pointf {
+
+    float x = 0;
+    float y = 0;
+
+    Pointf() {}
+
+    Pointf(float x, float y) :
+            x(x), y(y) {
+    }
+};
+
+Pointf transform(int k, Pointf p) {
+	
+		Pointf p_out;
+		float d;
+
+		d = (1.0f/ k) - std::max(std::abs(p.x), std::abs(p.y));
+
+		p_out.x = p.x + std::copysign(d, p.x);
+		p_out.y = p.y + std::copysign(d, p.y);
+
+		std::cout << "was: " << p.x << ' ' << p.y << std::endl;
+		std::cout << "now: " << p_out.x << ' ' << p_out.y << std::endl;
+
+		return p_out;
+	}
+
 class Shape3D {
 protected:
 	int nel = 0;
 public:
-	int sectors = 10, sections = 5;
+	int sectors = 64, sections = 5;
 	std::vector<float> verts;
 
 	float* getArray() {
@@ -67,35 +107,70 @@ public:
 			break;
 		}
 
+
+
 		for (int i = 0; i < sectors; i++) {
 			float cir1 = 2 * M_PI * i / sectors;
 			float cir2 = 2 * M_PI * (i + 1) / sectors;
 			float from = 0.0f;
 
+			Pointf p1(transform(1, Pointf(cos(cir1), sin(cir1))));
+			Pointf p2(transform(1, Pointf(cos(cir2), sin(cir2))));
+
 			for (int j = 1; j <= sections; j++) {
-				*d = from * cos(cir1);
-				*e = from * sin(cir1);
+				*d = from * p1.x;
+				*e = from * p1.y;
 				verts.push_back(a);
 				verts.push_back(b);
 				verts.push_back(c);
-				*d = from * cos(cir2);
-				*e = from * sin(cir2);
+				*d = from * p2.x;
+				*e = from * p2.y;
 				verts.push_back(a);
 				verts.push_back(b);
 				verts.push_back(c);
 				from = j * (1.0f / sections);
-				*d = from * cos(cir2);
-				*e = from * sin(cir2);
+				*d = from * p2.x;
+				*e = from * p2.y;
 				verts.push_back(a);
 				verts.push_back(b);
 				verts.push_back(c);
-				*d = from * cos(cir1);
-				*e = from * sin(cir1);
+				*d = from * p1.x;
+				*e = from * p1.y;
 				verts.push_back(a);
 				verts.push_back(b);
 				verts.push_back(c);
 			}
 		}
+
+		// 		for (int i = 0; i < sectors; i++) {
+		// 	float cir1 = 2 * M_PI * i / sectors;
+		// 	float cir2 = 2 * M_PI * (i + 1) / sectors;
+		// 	float from = 0.0f;
+
+		// 	for (int j = 1; j <= sections; j++) {
+		// 		*d = from * cos(cir1);
+		// 		*e = from * sin(cir1);
+		// 		verts.push_back(a);
+		// 		verts.push_back(b);
+		// 		verts.push_back(c);
+		// 		*d = from * cos(cir2);
+		// 		*e = from * sin(cir2);
+		// 		verts.push_back(a);
+		// 		verts.push_back(b);
+		// 		verts.push_back(c);
+		// 		from = j * (1.0f / sections);
+		// 		*d = from * cos(cir2);
+		// 		*e = from * sin(cir2);
+		// 		verts.push_back(a);
+		// 		verts.push_back(b);
+		// 		verts.push_back(c);
+		// 		*d = from * cos(cir1);
+		// 		*e = from * sin(cir1);
+		// 		verts.push_back(a);
+		// 		verts.push_back(b);
+		// 		verts.push_back(c);
+		// 	}
+		// }
 
 		nel = verts.size() / 3;
 	}
@@ -176,6 +251,8 @@ public:
 		cir_bot.changeFragm(sectors, sections);
 	};
 
+	
+
 	void calculateVert() {
 		Shape3D::calculateVert();
 		cir_top.calculateVert();
@@ -186,22 +263,29 @@ public:
 			float cir2 = 2 * M_PI * (i + 1) / sectors;
 			float from = -1.0f;
 			for (int j = 1; j  <= sections; j++) {
-				verts.push_back(cos(cir1));
-				verts.push_back(sin(cir1));
+
+				Pointf p1(transform(1, Pointf(cos(cir1), sin(cir1))));
+				Pointf p2(transform(1, Pointf(cos(cir2), sin(cir2))));
+
+				// Pointf p1(cos(cir1), sin(cir1));
+				// Pointf p2(cos(cir2), sin(cir2));
+
+				verts.push_back(p1.x);
+				verts.push_back(p1.y);
 				verts.push_back(from);
 
-				verts.push_back(cos(cir2));
-				verts.push_back(sin(cir2));
+				verts.push_back(p2.x);
+				verts.push_back(p2.y);
 				verts.push_back(from);
 
 				from = -1.0f + j * (2.0f / sections);
 
-				verts.push_back(cos(cir2));
-				verts.push_back(sin(cir2));
+				verts.push_back(p2.x);
+				verts.push_back(p2.y);
 				verts.push_back(from);
 
-				verts.push_back(cos(cir1));
-				verts.push_back(sin(cir1));
+				verts.push_back(p1.x);
+				verts.push_back(p1.y);
 				verts.push_back(from);
 			}
 		}

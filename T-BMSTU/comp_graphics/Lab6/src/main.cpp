@@ -18,7 +18,9 @@
 
 #include "shape.hpp"
 
-int sectors = 10, sections = 5;
+int sectors = 100, sections = 5;
+
+
 float width = 800, height = 600;
 
 GLfloat r_xy = 0.0f, r_yz = 0.0f, r_xz = 0.0f; // rotate radius
@@ -45,21 +47,27 @@ void drawCube(Cube &cube) {
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 
+	glNormal3f(0.0f, 1.0f, 0.0f);
 	glVertexPointer(3, GL_FLOAT, 0, cube.squ_bot.getArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_bot.getNel());
 
+	glNormal3f(0.0f, -1.0f, 0.0f);
 	glVertexPointer(3, GL_FLOAT, 0, cube.squ_top.getArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_top.getNel());
 
+	glNormal3f(1.0f, 0.0f, 0.0f);
 	glVertexPointer(3, GL_FLOAT, 0, cube.squ_left.getArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_left.getNel());
 
+	glNormal3f(-1.0f, 0.0f, 0.0f);
 	glVertexPointer(3, GL_FLOAT, 0, cube.squ_right.getArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_right.getNel());
 
+	glNormal3f(0.0f, 0.0f, 1.0f);
 	glVertexPointer(3, GL_FLOAT, 0, cube.squ_back.getArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_back.getNel());
 
+	glNormal3f(0.0f, 0.0f, -1.0f);
 	glVertexPointer(3, GL_FLOAT, 0, cube.squ_front.getArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_front.getNel());
 
@@ -83,10 +91,13 @@ void drawCylinder(Cylinder &cyl) {
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
 
+
+
 void modelview() {
 
 
-	glMatrixMode(GL_MODELVIEW);
+	// glMatrixMode(GL_MODELVIEW);
+	// glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
 
@@ -97,25 +108,32 @@ void modelview() {
 	// glScalef(k, k, k);
 
 
+
 	glm::mat4 model_mtrx;
-	glm::mat4 rotate_mtrx;
-	glm::mat4 light_mtrx;
+	glm::mat4 view_mtrx;
+	glm::mat4 proj_mtrx;
+	glm::mat4 mvp_mtrx;
 
 	model_mtrx = glm::translate(model_mtrx, glm::vec3(x_t, y_t, 0.0f));
+	model_mtrx = glm::rotate(model_mtrx, glm::radians(r_xy), glm::vec3(0.0f, 0.0f, 1.0f));
+	model_mtrx = glm::rotate(model_mtrx, glm::radians(r_yz), glm::vec3(1.0f, 0.0f, 0.0f));
+	model_mtrx = glm::rotate(model_mtrx, glm::radians(r_xz), glm::vec3(0.0f, 1.0f, 0.0f));
+	model_mtrx = glm::scale(model_mtrx, glm::vec3(k));
 
-	rotate_mtrx = glm::rotate(rotate_mtrx, glm::radians(r_xy), glm::vec3(0.0f, 0.0f, 1.0f));
-	rotate_mtrx = glm::rotate(rotate_mtrx, glm::radians(r_yz), glm::vec3(1.0f, 0.0f, 0.0f));
-	rotate_mtrx = glm::rotate(rotate_mtrx, glm::radians(r_xz), glm::vec3(0.0f, 1.0f, 0.0f));
+	// view_mtrx = glm::lookAt(
+	// 	glm::vec3(0, 0, 2),
+	// 	glm::vec3(0, 0, 0),
+	// 	glm::vec3(0, 1, 0));
 
-	model_mtrx = model_mtrx * rotate_mtrx;
+	// proj_mtrx = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
 
-	model_mtrx = glm::scale(model_mtrx, glm::vec3(0.7f));
+	mvp_mtrx = proj_mtrx * view_mtrx * model_mtrx;
+	// mvp_mtrx = view_mtrx * model_mtrx;
+	// mvp_mtrx = model_mtrx;
 
-	glMultMatrixf(glm::value_ptr(model_mtrx));
+	glMultMatrixf(glm::value_ptr(mvp_mtrx));
 
-	light_mtrx = glm::inverse(model_mtrx) * light_mtrx;
-
-	glLightfv(GL_LIGHT0, GL_POSITION, glm::value_ptr(light_mtrx));
+	// light_mtrx = glm::inverse(model_mtrx) * light_mtrx;
 }
 
 void projection() {
@@ -193,19 +211,25 @@ int main(void) {
 	glDepthFunc(GL_LESS);
 	glViewport(0, 0, width, height);
 
-	 glEnable(GL_AUTO_NORMAL);
+	 //glEnable(GL_AUTO_NORMAL);
 	 glEnable(GL_LIGHTING);
 	 glEnable(GL_LIGHT0);
 
-GLfloat ambientLight[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-GLfloat diffuseLight[] = { 0.8f, 0.8f, 0.8, 1.0f };
-GLfloat specularLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-GLfloat light1_position[] = {0.0, 0.0, 1.0, 1.0};
+GLfloat ambientLight[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+GLfloat diffuseLight[] = { 0.8f, 0.8f, 0.8f, 1.0f };
+GLfloat specularLight[] = { 0.1f, 0.1f, 0.1f, 1.0f };
+GLfloat light1_position[] = {0.0, 0.0, 2.0, 0.0f};
 
-glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 0.0f);
+// glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, 1.0f);
+
+// glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
 glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
-glLightfv(GL_LIGHT0, GL_POSITION, light1_position);
+// glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+// glLightfv(GL_LIGHT0, GL_POSITION, light1_position);
+
+
+
 	
 	Cylinder cylinder;
 	Cube cube;
@@ -225,14 +249,20 @@ glLightfv(GL_LIGHT0, GL_POSITION, light1_position);
 
 		
 
-glColor3f(1.0f, 0.0f, 0.0f);
+	glColor3f(1.0f, 0.0f, 0.0f);
 
-
-modelview();
+		glPushMatrix();
+		modelview();
 
 		//glScalef(0.5f, 0.5f, 0.5f);
-		drawCube(cube);
+		// drawCube(cube
+		drawCylinder(cylinder);
 		
+		glPopMatrix();
+
+		//glLightfv(GL_LIGHT0, GL_POSITION, light1_position);
+
+
 		// if (sectors != cylinder.sectors || sections != cylinder.sections) {
 		// 	cylinder.changeFragm(sectors, sections);
 		// 	cylinder.calculateVert();
