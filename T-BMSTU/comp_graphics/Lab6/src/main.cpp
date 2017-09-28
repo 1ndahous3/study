@@ -18,8 +18,8 @@
 
 #include "shape.hpp"
 
-int sectors = 100, sections = 5;
-
+int sectors = 100, slices = 5;
+int keyframes = 20, currentframe = 0;
 
 float width = 800, height = 600;
 
@@ -48,27 +48,27 @@ void drawCube(Cube &cube) {
 	glEnableClientState(GL_VERTEX_ARRAY);
 
 	glNormal3f(0.0f, 1.0f, 0.0f);
-	glVertexPointer(3, GL_FLOAT, 0, cube.squ_bot.getArray());
+	glVertexPointer(3, GL_FLOAT, 0, cube.squ_bot.getVertsArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_bot.getNel());
 
 	glNormal3f(0.0f, -1.0f, 0.0f);
-	glVertexPointer(3, GL_FLOAT, 0, cube.squ_top.getArray());
+	glVertexPointer(3, GL_FLOAT, 0, cube.squ_top.getVertsArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_top.getNel());
 
 	glNormal3f(1.0f, 0.0f, 0.0f);
-	glVertexPointer(3, GL_FLOAT, 0, cube.squ_left.getArray());
+	glVertexPointer(3, GL_FLOAT, 0, cube.squ_left.getVertsArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_left.getNel());
 
 	glNormal3f(-1.0f, 0.0f, 0.0f);
-	glVertexPointer(3, GL_FLOAT, 0, cube.squ_right.getArray());
+	glVertexPointer(3, GL_FLOAT, 0, cube.squ_right.getVertsArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_right.getNel());
 
 	glNormal3f(0.0f, 0.0f, 1.0f);
-	glVertexPointer(3, GL_FLOAT, 0, cube.squ_back.getArray());
+	glVertexPointer(3, GL_FLOAT, 0, cube.squ_back.getVertsArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_back.getNel());
 
 	glNormal3f(0.0f, 0.0f, -1.0f);
-	glVertexPointer(3, GL_FLOAT, 0, cube.squ_front.getArray());
+	glVertexPointer(3, GL_FLOAT, 0, cube.squ_front.getVertsArray());
 	glDrawArrays(GL_QUADS, 0, cube.squ_front.getNel());
 
 	glDisableClientState(GL_VERTEX_ARRAY);
@@ -78,17 +78,28 @@ void drawCylinder(Cylinder &cyl) {
 	glColor3f(0.0f, 1.0f, 0.0f);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, cyl.getVertsArray());
 
-	glVertexPointer(3, GL_FLOAT, 0, cyl.getArray());
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glNormalPointer(GL_FLOAT, 0, cyl.getNormsArray());
+
 	glDrawArrays(GL_QUADS, 0, cyl.getNel());
 
-	glVertexPointer(3, GL_FLOAT, 0, cyl.cir_top.getArray());
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, cyl.cir_top.getVertsArray());
+
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glNormalPointer(GL_FLOAT, 0, cyl.cir_top.getNormsArray());
+
 	glDrawArrays(GL_QUADS, 0, cyl.cir_top.getNel());
 
-	glVertexPointer(3, GL_FLOAT, 0, cyl.cir_bot.getArray());
-	glDrawArrays(GL_QUADS, 0, cyl.cir_bot.getNel());
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, cyl.cir_bot.getVertsArray());
 
-	glDisableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glNormalPointer(GL_FLOAT, 0, cyl.cir_bot.getNormsArray());
+
+	glDrawArrays(GL_QUADS, 0, cyl.cir_bot.getNel());
 }
 
 
@@ -175,11 +186,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action,
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); break;
 		case GLFW_KEY_P:
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
+		case GLFW_KEY_T:
+			currentframe++;
 			// fragmentation
 		case GLFW_KEY_KP_ADD: sectors++; break;
 		case GLFW_KEY_KP_SUBTRACT: sectors--; break;
-		case GLFW_KEY_KP_MULTIPLY: sections++; break;
-		case GLFW_KEY_KP_DIVIDE: sections--; break;
+		case GLFW_KEY_KP_MULTIPLY: slices++; break;
+		case GLFW_KEY_KP_DIVIDE: slices--; break;
 
 		}
 	}
@@ -213,12 +226,13 @@ int main(void) {
 
 	 //glEnable(GL_AUTO_NORMAL);
 	 glEnable(GL_LIGHTING);
+	 glShadeModel(GL_FLAT); // "Эт что?" - Роман
 	 glEnable(GL_LIGHT0);
 
 GLfloat ambientLight[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 GLfloat diffuseLight[] = { 0.8f, 0.8f, 0.8f, 1.0f };
 GLfloat specularLight[] = { 0.1f, 0.1f, 0.1f, 1.0f };
-GLfloat light1_position[] = {0.0, 0.0, 2.0, 0.0f};
+GLfloat light_position[] = {0.0f, 0.0f, 2.0f, 0.0f};
 
 glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 0.0f);
 // glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, 1.0f);
@@ -226,20 +240,21 @@ glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 0.0f);
 // glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
 glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 // glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
-// glLightfv(GL_LIGHT0, GL_POSITION, light1_position);
+glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
 
 
-	
+	// Bezier bezier;	
 	Cylinder cylinder;
 	Cube cube;
-	cylinder.calculateVert();
-	cube.calculateVert();
+
+	cylinder.calculateVert(keyframes, currentframe);
+	cylinder.calculateNorms();
+	cube.calculateVert(keyframes, currentframe);
 
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//projection();
-		// glMatrixMode(GL_MODELVIEW);
 		// glLoadIdentity();
 		// glTranslated(-1.0f, -0.45f, 0.0f);
 		// glScalef(0.1f, 0.1f, 0.1f);
@@ -255,7 +270,7 @@ glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 		modelview();
 
 		//glScalef(0.5f, 0.5f, 0.5f);
-		// drawCube(cube
+		// drawCube(cube);
 		drawCylinder(cylinder);
 		
 		glPopMatrix();
@@ -263,10 +278,11 @@ glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 		//glLightfv(GL_LIGHT0, GL_POSITION, light1_position);
 
 
-		// if (sectors != cylinder.sectors || sections != cylinder.sections) {
-		// 	cylinder.changeFragm(sectors, sections);
-		// 	cylinder.calculateVert();
-		// }
+		if (sectors != cylinder.sectors || slices != cylinder.slices || currentframe != cylinder.currentframe) {
+			cylinder.changeFragm(sectors, slices, currentframe);
+			cylinder.calculateVert(keyframes, currentframe);
+			cylinder.calculateNorms();
+		}
 		// drawCylinder(cylinder);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
