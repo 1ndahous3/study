@@ -11,6 +11,7 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <SOIL.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,6 +23,8 @@ int sectors = 100, slices = 5;
 int keyframes = 20, currentframe = 0;
 
 float width = 800, height = 600;
+
+GLuint texture;
 
 GLfloat r_xy = 0.0f, r_yz = 0.0f, r_xz = 0.0f; // rotate radius
 GLfloat k = 1.0f; // scale
@@ -83,23 +86,30 @@ void drawCylinder(Cylinder &cyl) {
 	glEnableClientState(GL_NORMAL_ARRAY);
 	glNormalPointer(GL_FLOAT, 0, cyl.getNormsArray());
 
+	float coords[] = {
+		0.0f, 0.0, 1.0, 0.0, 0.5, 1.0
+	};
+
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glTexCoordPointer(2, GL_FLOAT, 0, &coords);
+
 	glDrawArrays(GL_QUADS, 0, cyl.getNel());
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, cyl.cir_top.getVertsArray());
+	// glEnableClientState(GL_VERTEX_ARRAY);
+	// glVertexPointer(3, GL_FLOAT, 0, cyl.cir_top.getVertsArray());
 
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glNormalPointer(GL_FLOAT, 0, cyl.cir_top.getNormsArray());
+	// glEnableClientState(GL_NORMAL_ARRAY);
+	// glNormalPointer(GL_FLOAT, 0, cyl.cir_top.getNormsArray());
 
-	glDrawArrays(GL_QUADS, 0, cyl.cir_top.getNel());
+	// glDrawArrays(GL_QUADS, 0, cyl.cir_top.getNel());
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, cyl.cir_bot.getVertsArray());
+	// glEnableClientState(GL_VERTEX_ARRAY);
+	// glVertexPointer(3, GL_FLOAT, 0, cyl.cir_bot.getVertsArray());
 
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glNormalPointer(GL_FLOAT, 0, cyl.cir_bot.getNormsArray());
+	// glEnableClientState(GL_NORMAL_ARRAY);
+	// glNormalPointer(GL_FLOAT, 0, cyl.cir_bot.getNormsArray());
 
-	glDrawArrays(GL_QUADS, 0, cyl.cir_bot.getNel());
+	// glDrawArrays(GL_QUADS, 0, cyl.cir_bot.getNel());
 }
 
 
@@ -229,20 +239,26 @@ int main(void) {
 	 glShadeModel(GL_FLAT); // "Эт что?" - Роман
 	 glEnable(GL_LIGHT0);
 
-GLfloat ambientLight[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-GLfloat diffuseLight[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-GLfloat specularLight[] = { 0.1f, 0.1f, 0.1f, 1.0f };
 GLfloat light_position[] = {0.0f, 0.0f, 2.0f, 0.0f};
 
 glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 0.0f);
 // glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, 1.0f);
 
 // glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
+// glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 // glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
 glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
 
+
+// GLuint texture;
+glGenTextures(1, &texture);
+int _width, _height;
+unsigned char *image = SOIL_load_image("tex.bmp", &_width, &_height, 0, SOIL_LOAD_RGB);
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _width, _height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+glGenerateMipmap(GL_TEXTURE_2D);
+SOIL_free_image_data(image);
+glBindTexture(GL_TEXTURE_2D, 0);
 
 	// Bezier bezier;	
 	Cylinder cylinder;
@@ -279,7 +295,7 @@ glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
 
 		if (sectors != cylinder.sectors || slices != cylinder.slices || currentframe != cylinder.currentframe) {
-			cylinder.changeFragm(sectors, slices, currentframe);
+			cylinder.changeFragm(sectors, slices, keyframes, currentframe);
 			cylinder.calculateVert(keyframes, currentframe);
 			cylinder.calculateNorms();
 		}

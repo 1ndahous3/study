@@ -1,6 +1,6 @@
 NAME=main
 SRC=src/main.cpp
-CFLAGS=-g -lGL -lGLEW -lglfw -Wall -o
+CFLAGS=-g -lGL -lGLEW -lglfw -lSOIL -Wall -o
 CC=g++
 
 default: build run

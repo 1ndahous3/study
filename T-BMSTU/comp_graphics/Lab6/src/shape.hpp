@@ -27,46 +27,13 @@ struct Pointf {
     Pointf(float x, float y)
     : x(x)
     , y(y) {}
-};
 
-class Bezier {
+    Pointf(float x, float y, float z)
+    : x(x)
+    , y(y)
+    , z(z) {}
 
-private:
-	std::map<Pointf, std::vector<Pointf>> verts;
 
-public:
-
-	void calculateVert(Pointf p1, Pointf p2) {
-
-		Point p3 = p2;
-
-		std::vector<Pointf> points;
-
-		for (int i = 0; i <= keyframes; i++) {
-			Pointf p;
-
-			float t = (float)i / (float)keyframes;
-			float _t = 1.0f - t;
-
-			p.x = _t * _t * p1.x + 2 * t * _t * p3.x + t * t * p2.x;
-			p.y = _t * _t * p1.y + 2 * t * _t * p3.y + t * t * p2.y;
-			p.z = _t * _t * p1.z + 2 * t * _t * p3.z + t * t * p2.z;
-
-			points.push_back(p);
-		}
-		
-		verts[p1] = points;
-	};
-
-	Pointf getPoint(Pointf p, int k) {
-
-		return verts[p][k];
-	}
-
-	void clear() {
-		
-		verts.clear();
-	}
 
 };
 
@@ -79,6 +46,7 @@ Pointf transform(int k, Pointf p) {
 
 		p_out.x = p.x + std::copysign(d, p.x);
 		p_out.y = p.y + std::copysign(d, p.y);
+		p_out.z = p.z;
 
 		std::cout << "was: " << p.x << ' ' << p.y << std::endl;
 		std::cout << "now: " << p_out.x << ' ' << p_out.y << std::endl;
@@ -90,9 +58,8 @@ class Shape3D {
 protected:
 	int nel = 0;
 public:
-	int sectors = 64, slices = 5, currentframe = 0;
+	int sectors = 64, slices = 5, keyframes = 20, currentframe = 0;
 	std::vector<float> verts, norms;
-	Bezier bezier;
 
 	float* getVertsArray() {
 		return &verts[0];
@@ -106,7 +73,25 @@ public:
 		return nel;
 	}
 
-	virtual void changeFragm(int sectors, int slices, int currentframe) = 0;
+	Pointf currentIter(Pointf p1, Pointf p2) {
+
+		// Pointf p3 = p2;
+
+		Pointf p3(0.5f, 0.5f, p2.z);
+
+		Pointf p;
+
+		float t = (float)currentframe / (float)keyframes;
+		float _t = 1.0f - t;
+
+		p.x = _t * _t * p1.x + 2 * t * _t * p3.x + t * t * p2.x;
+		p.y = _t * _t * p1.y + 2 * t * _t * p3.y + t * t * p2.y;
+		p.z = _t * _t * p1.z + 2 * t * _t * p3.z + t * t * p2.z;
+
+		return p;
+	}
+
+	virtual void changeFragm(int sectors, int slices, int keyframes, int currentframe) = 0;
 	virtual void calculateVert(int keyframes, int currentframe) {
 		verts.clear();
 	};
@@ -132,15 +117,15 @@ public:
 		this->pos = pos;
 	}
 
-	void changeFragm(int sectors, int slices, int currentframe) {
+	void changeFragm(int sectors, int slices, int keyframes, int currentframe) {
 		this->slices = slices;
 		this->sectors = sectors;
+		this->keyframes = keyframes;
 		this->currentframe = currentframe;
 	}
 
 	void calculateNorms(float z) {
 		Shape3D::calculateNorms();
-
 
 		for (int i = 0; i < 4 * sectors * slices; i++) {
 			norms.push_back(0);
@@ -188,13 +173,16 @@ public:
 
 			Pointf p1, p2;
 
-			p1.x = p1_start.x + ((p1_finish.x - p1_start.x) / (float)keyframes) * current_frame;
-			p1.y = p1_start.y + ((p1_finish.y - p1_start.y) / (float)keyframes) * current_frame;
-			p1.z = p1_start.z + ((p1_finish.z - p1_start.z) / (float)keyframes) * current_frame;
+			p1 = currentIter(p1_start, p1_finish);
+			p2 = currentIter(p2_start, p2_finish);
+
+			// p1.x = p1_start.x + ((p1_finish.x - p1_start.x) / (float)keyframes) * current_frame;
+			// p1.y = p1_start.y + ((p1_finish.y - p1_start.y) / (float)keyframes) * current_frame;
+			// p1.z = p1_start.z + ((p1_finish.z - p1_start.z) / (float)keyframes) * current_frame;
 				
-			p2.x = p2_start.x + ((p2_finish.x - p2_start.x) / (float)keyframes) * current_frame;
-			p2.y = p2_start.y + ((p2_finish.y - p2_start.y) / (float)keyframes) * current_frame;
-			p2.z = p2_start.z + ((p2_finish.z - p2_start.z) / (float)keyframes) * current_frame;
+			// p2.x = p2_start.x + ((p2_finish.x - p2_start.x) / (float)keyframes) * current_frame;
+			// p2.y = p2_start.y + ((p2_finish.y - p2_start.y) / (float)keyframes) * current_frame;
+			// p2.z = p2_start.z + ((p2_finish.z - p2_start.z) / (float)keyframes) * current_frame;
 
 			for (int j = 1; j <= slices; j++) {
 				*d = from * p1.x;
@@ -267,9 +255,10 @@ public:
 		this->pos = pos;
 	};
 
-	void changeFragm(int sectors, int slices, int currentframe) {
+	void changeFragm(int sectors, int slices, int keyframes, int currentframe) {
 		this->slices = slices;
 		this->sectors = sectors;
+		this->keyframes = keyframes;
 		this->currentframe = currentframe;
 	};
 
@@ -324,12 +313,13 @@ public:
 	Circle cir_top, cir_bot;
 	Cylinder() : cir_top(Shape2D::XY, -1.0f), cir_bot(Shape2D::XY, 1.0f) {}
 
-	void changeFragm(int sectors, int slices, int currentframe) {
+	void changeFragm(int sectors, int slices, int keyframes, int currentframe) {
 		this->slices = slices;
 		this->sectors = sectors;
+		this->keyframes = keyframes;
 		this->currentframe = currentframe;
-		cir_top.changeFragm(sectors, slices, currentframe);
-		cir_bot.changeFragm(sectors, slices, currentframe);
+		cir_top.changeFragm(sectors, slices, keyframes, currentframe);
+		cir_bot.changeFragm(sectors, slices, keyframes, currentframe);
 	};
 
 	void calculateNorms() {
@@ -406,45 +396,44 @@ public:
 			float from = -1.0f;
 			for (int j = 1; j  <= slices; j++) {
 
-				Pointf p1_start = Pointf(cos(cir1), sin(cir1));
-				Pointf p2_start = Pointf(cos(cir2), sin(cir2));
+				Pointf p1_start = Pointf(cos(cir1), sin(cir1), from);
+				Pointf p2_start = Pointf(cos(cir2), sin(cir2), from);
 
-				Pointf p1_finish = transform(1, Pointf(cos(cir1), sin(cir1)));
-				Pointf p2_finish = transform(1, Pointf(cos(cir2), sin(cir2)));
+				Pointf p1_finish = transform(1, Pointf(cos(cir1), sin(cir1), from));
+				Pointf p2_finish = transform(1, Pointf(cos(cir2), sin(cir2), from));
 
 				Pointf p1, p2;
 
-				p1.x = p1_start.x + ((p1_finish.x - p1_start.x) / (float)keyframes) * current_frame;
-				p1.y = p1_start.y + ((p1_finish.y - p1_start.y) / (float)keyframes) * current_frame;
-				p1.z = p1_start.z + ((p1_finish.z - p1_start.z) / (float)keyframes) * current_frame;
-				
-				p2.x = p2_start.x + ((p2_finish.x - p2_start.x) / (float)keyframes) * current_frame;
-				p2.y = p2_start.y + ((p2_finish.y - p2_start.y) / (float)keyframes) * current_frame;
-				p2.z = p2_start.z + ((p2_finish.z - p2_start.z) / (float)keyframes) * current_frame;
 
-				// Pointf p1(transform(1, Pointf(cos(cir1), sin(cir1))));
-				// Pointf p2(transform(1, Pointf(cos(cir2), sin(cir2))));
-
-				// Pointf p1(cos(cir1), sin(cir1));
-				// Pointf p2(cos(cir2), sin(cir2));
+			p1 = currentIter(p1_start, p1_finish);
+			p2 = currentIter(p2_start, p2_finish);
 
 				verts.push_back(p1.x);
 				verts.push_back(p1.y);
-				verts.push_back(from);
+				verts.push_back(p1.z);
 
 				verts.push_back(p2.x);
 				verts.push_back(p2.y);
-				verts.push_back(from);
+				verts.push_back(p2.z);
 
 				from = -1.0f + j * (2.0f / slices);
 
+				p1_start = Pointf(cos(cir1), sin(cir1), from);
+				p2_start = Pointf(cos(cir2), sin(cir2), from);
+
+				p1_finish = transform(1, Pointf(cos(cir1), sin(cir1), from));
+				p2_finish = transform(1, Pointf(cos(cir2), sin(cir2), from));
+
+				p1 = currentIter(p1_start, p1_finish);
+				p2 = currentIter(p2_start, p2_finish);
+
 				verts.push_back(p2.x);
 				verts.push_back(p2.y);
-				verts.push_back(from);
+				verts.push_back(p2.z);
 
 				verts.push_back(p1.x);
 				verts.push_back(p1.y);
-				verts.push_back(from);
+				verts.push_back(p1.z);
 			}
 		}
 
@@ -464,15 +453,18 @@ public:
 		squ_back(Shape2D::XY,-1.0f),
 		squ_front(Shape2D::XY, 1.0f) {};
 
-	void changeFragm(int sectors, int slices, int currentframe) {
+	void changeFragm(int sectors, int slices, int keyframes, int currentframe) {
 		this->slices = slices;
 		this->sectors = sectors;
-		squ_bot.changeFragm(sectors, slices, currentframe);
-		squ_top.changeFragm(sectors, slices, currentframe);
-		squ_left.changeFragm(sectors, slices, currentframe);
-		squ_right.changeFragm(sectors, slices, currentframe);
-		squ_back.changeFragm(sectors, slices, currentframe);
-		squ_front.changeFragm(sectors, slices, currentframe);
+		this->keyframes = keyframes;
+		this->currentframe = currentframe;
+
+		squ_bot.changeFragm(sectors, slices, keyframes, currentframe);
+		squ_top.changeFragm(sectors, slices, keyframes, currentframe);
+		squ_left.changeFragm(sectors, slices, keyframes, currentframe);
+		squ_right.changeFragm(sectors, slices, keyframes, currentframe);
+		squ_back.changeFragm(sectors, slices, keyframes, currentframe);
+		squ_front.changeFragm(sectors, slices, keyframes, currentframe);
 	};
 
 	void calculateVert(int keyframes, int currentframe) {
